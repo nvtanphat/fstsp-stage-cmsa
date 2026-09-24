@@ -1,0 +1,18 @@
+seed: 42
+solver:
+  time_limit: 60
+  mip_rel_gap: 0.01
+  presolve: true
+cmsa:
+  total_time: 120
+  mip_time: 15
+  age_limit: 2
+  truck_sample_ratio: 0.65
+  exact_tsp_threshold: 12
+instance:
+  n_customers: 20
+  truck_speed: 1.0
+  drone_speed: 2.0
+  drone_endurance: 120.0
+  launch_time: 1.0
+  recovery_time: 1.0

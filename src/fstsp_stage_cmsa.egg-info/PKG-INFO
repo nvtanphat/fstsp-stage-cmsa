@@ -1,0 +1,15 @@
+Metadata-Version: 2.4
+Name: fstsp-stage-cmsa
+Version: 0.4.0
+Summary: Research-grade reimplementation of a 2-index stage-based FSTSP formulation and CMSA heuristic
+Requires-Python: >=3.11
+License-File: LICENSE
+Requires-Dist: numpy>=2.0
+Requires-Dist: scipy>=1.14
+Requires-Dist: pandas>=2.2
+Requires-Dist: matplotlib>=3.9
+Requires-Dist: pyyaml>=6.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8; extra == "dev"
+Requires-Dist: ruff>=0.9; extra == "dev"
+Dynamic: license-file

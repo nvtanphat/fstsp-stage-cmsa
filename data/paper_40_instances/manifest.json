@@ -1,0 +1,482 @@
+[
+  {
+    "name": "uniform_n20_seed1",
+    "n": 20,
+    "seed": 1,
+    "file": "instance_n20_seed01.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 20,
+    "drone_endurance": 102.9475292936943
+  },
+  {
+    "name": "uniform_n20_seed2",
+    "n": 20,
+    "seed": 2,
+    "file": "instance_n20_seed02.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 20,
+    "drone_endurance": 104.6667821813972
+  },
+  {
+    "name": "uniform_n20_seed3",
+    "n": 20,
+    "seed": 3,
+    "file": "instance_n20_seed03.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 20,
+    "drone_endurance": 113.98904780075813
+  },
+  {
+    "name": "uniform_n20_seed4",
+    "n": 20,
+    "seed": 4,
+    "file": "instance_n20_seed04.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 20,
+    "drone_endurance": 111.5686231626098
+  },
+  {
+    "name": "uniform_n20_seed5",
+    "n": 20,
+    "seed": 5,
+    "file": "instance_n20_seed05.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 20,
+    "drone_endurance": 129.05239604092895
+  },
+  {
+    "name": "uniform_n20_seed6",
+    "n": 20,
+    "seed": 6,
+    "file": "instance_n20_seed06.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 20,
+    "drone_endurance": 120.10364030183439
+  },
+  {
+    "name": "uniform_n20_seed7",
+    "n": 20,
+    "seed": 7,
+    "file": "instance_n20_seed07.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 20,
+    "drone_endurance": 116.23843974876436
+  },
+  {
+    "name": "uniform_n20_seed8",
+    "n": 20,
+    "seed": 8,
+    "file": "instance_n20_seed08.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 20,
+    "drone_endurance": 109.01421315731169
+  },
+  {
+    "name": "uniform_n20_seed9",
+    "n": 20,
+    "seed": 9,
+    "file": "instance_n20_seed09.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 20,
+    "drone_endurance": 122.7394471835619
+  },
+  {
+    "name": "uniform_n20_seed10",
+    "n": 20,
+    "seed": 10,
+    "file": "instance_n20_seed10.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 20,
+    "drone_endurance": 108.48510558275187
+  },
+  {
+    "name": "uniform_n30_seed1",
+    "n": 30,
+    "seed": 1,
+    "file": "instance_n30_seed01.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 30,
+    "drone_endurance": 103.40837372135195
+  },
+  {
+    "name": "uniform_n30_seed2",
+    "n": 30,
+    "seed": 2,
+    "file": "instance_n30_seed02.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 30,
+    "drone_endurance": 113.68522139773205
+  },
+  {
+    "name": "uniform_n30_seed3",
+    "n": 30,
+    "seed": 3,
+    "file": "instance_n30_seed03.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 30,
+    "drone_endurance": 124.61218191917234
+  },
+  {
+    "name": "uniform_n30_seed4",
+    "n": 30,
+    "seed": 4,
+    "file": "instance_n30_seed04.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 30,
+    "drone_endurance": 117.06922229017486
+  },
+  {
+    "name": "uniform_n30_seed5",
+    "n": 30,
+    "seed": 5,
+    "file": "instance_n30_seed05.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 30,
+    "drone_endurance": 129.05239604092895
+  },
+  {
+    "name": "uniform_n30_seed6",
+    "n": 30,
+    "seed": 6,
+    "file": "instance_n30_seed06.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 30,
+    "drone_endurance": 122.64262791020963
+  },
+  {
+    "name": "uniform_n30_seed7",
+    "n": 30,
+    "seed": 7,
+    "file": "instance_n30_seed07.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 30,
+    "drone_endurance": 116.23843974876436
+  },
+  {
+    "name": "uniform_n30_seed8",
+    "n": 30,
+    "seed": 8,
+    "file": "instance_n30_seed08.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 30,
+    "drone_endurance": 110.19124405909714
+  },
+  {
+    "name": "uniform_n30_seed9",
+    "n": 30,
+    "seed": 9,
+    "file": "instance_n30_seed09.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 30,
+    "drone_endurance": 127.96937778314081
+  },
+  {
+    "name": "uniform_n30_seed10",
+    "n": 30,
+    "seed": 10,
+    "file": "instance_n30_seed10.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 30,
+    "drone_endurance": 108.48510558275187
+  },
+  {
+    "name": "uniform_n40_seed1",
+    "n": 40,
+    "seed": 1,
+    "file": "instance_n40_seed01.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 40,
+    "drone_endurance": 110.40801213879757
+  },
+  {
+    "name": "uniform_n40_seed2",
+    "n": 40,
+    "seed": 2,
+    "file": "instance_n40_seed02.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 40,
+    "drone_endurance": 113.68522139773205
+  },
+  {
+    "name": "uniform_n40_seed3",
+    "n": 40,
+    "seed": 3,
+    "file": "instance_n40_seed03.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 40,
+    "drone_endurance": 124.61218191917234
+  },
+  {
+    "name": "uniform_n40_seed4",
+    "n": 40,
+    "seed": 4,
+    "file": "instance_n40_seed04.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 40,
+    "drone_endurance": 117.06922229017486
+  },
+  {
+    "name": "uniform_n40_seed5",
+    "n": 40,
+    "seed": 5,
+    "file": "instance_n40_seed05.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 40,
+    "drone_endurance": 129.05239604092895
+  },
+  {
+    "name": "uniform_n40_seed6",
+    "n": 40,
+    "seed": 6,
+    "file": "instance_n40_seed06.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 40,
+    "drone_endurance": 122.64262791020963
+  },
+  {
+    "name": "uniform_n40_seed7",
+    "n": 40,
+    "seed": 7,
+    "file": "instance_n40_seed07.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 40,
+    "drone_endurance": 118.34691084051775
+  },
+  {
+    "name": "uniform_n40_seed8",
+    "n": 40,
+    "seed": 8,
+    "file": "instance_n40_seed08.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 40,
+    "drone_endurance": 110.19124405909714
+  },
+  {
+    "name": "uniform_n40_seed9",
+    "n": 40,
+    "seed": 9,
+    "file": "instance_n40_seed09.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 40,
+    "drone_endurance": 127.96937778314081
+  },
+  {
+    "name": "uniform_n40_seed10",
+    "n": 40,
+    "seed": 10,
+    "file": "instance_n40_seed10.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 40,
+    "drone_endurance": 108.62565359059997
+  },
+  {
+    "name": "uniform_n50_seed1",
+    "n": 50,
+    "seed": 1,
+    "file": "instance_n50_seed01.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 50,
+    "drone_endurance": 113.81668341547962
+  },
+  {
+    "name": "uniform_n50_seed2",
+    "n": 50,
+    "seed": 2,
+    "file": "instance_n50_seed02.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 50,
+    "drone_endurance": 113.82515689286676
+  },
+  {
+    "name": "uniform_n50_seed3",
+    "n": 50,
+    "seed": 3,
+    "file": "instance_n50_seed03.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 50,
+    "drone_endurance": 124.61218191917234
+  },
+  {
+    "name": "uniform_n50_seed4",
+    "n": 50,
+    "seed": 4,
+    "file": "instance_n50_seed04.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 50,
+    "drone_endurance": 117.06922229017486
+  },
+  {
+    "name": "uniform_n50_seed5",
+    "n": 50,
+    "seed": 5,
+    "file": "instance_n50_seed05.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 50,
+    "drone_endurance": 129.05239604092895
+  },
+  {
+    "name": "uniform_n50_seed6",
+    "n": 50,
+    "seed": 6,
+    "file": "instance_n50_seed06.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 50,
+    "drone_endurance": 124.60791654305008
+  },
+  {
+    "name": "uniform_n50_seed7",
+    "n": 50,
+    "seed": 7,
+    "file": "instance_n50_seed07.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 50,
+    "drone_endurance": 121.27006428462151
+  },
+  {
+    "name": "uniform_n50_seed8",
+    "n": 50,
+    "seed": 8,
+    "file": "instance_n50_seed08.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 50,
+    "drone_endurance": 110.19124405909714
+  },
+  {
+    "name": "uniform_n50_seed9",
+    "n": 50,
+    "seed": 9,
+    "file": "instance_n50_seed09.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 50,
+    "drone_endurance": 127.96937778314081
+  },
+  {
+    "name": "uniform_n50_seed10",
+    "n": 50,
+    "seed": 10,
+    "file": "instance_n50_seed10.json",
+    "depot": [
+      50.0,
+      50.0
+    ],
+    "num_customers": 50,
+    "drone_endurance": 126.29915417642069
+  }
+]

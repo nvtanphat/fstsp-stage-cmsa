@@ -1,0 +1,20 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.pyc
+build/
+dist/
+.kaggle/
+artifacts/runs/*
+artifacts/logs/*
+
+# Kaggle-specific items (Local only, not pushed to GitHub)
+kaggle/
+kaggle_data/
+scripts/kaggle_run.ps1
+scripts/kaggle_run.sh
+scripts/prepare_kaggle_kernel.py
+docs/KAGGLE_CLI.md
+artifacts/kaggle*
+
