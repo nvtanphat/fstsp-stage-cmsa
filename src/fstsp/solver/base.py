@@ -41,6 +41,12 @@ class SolverResult:
 class SolverBackend(ABC):
     """Abstract base class for FSTSP MILP solver backends."""
 
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Name identifier of the solver backend."""
+        pass
+
     @abstractmethod
     def solve(self, model: ModelData, options: SolverOptions) -> SolverResult:
         """Solve the assembled stage-based MILP model and return a SolverResult."""

@@ -19,11 +19,15 @@ def _build_truck_route(
     exact_tsp_threshold: int = 60,
     tsp_time_limit: float = 5.0,
     deadline: float | None = None,
-) -> tuple[list[int], str, bool]:
-    """Solve or approximate TSP for truck customers, returning (route, status, proven_optimal)."""
+    solver_backend: str = "highs",
+    threads: int | None = None,
+    mip_emphasis: int | None = None,
+) -> tuple[list[int], str, bool, str]:
+    """Solve or approximate TSP for truck customers, returning (route, status, proven_optimal, actual_solver)."""
     route = None
     status = "UNKNOWN"
     proven_optimal = False
+    actual_solver = "heuristic"
     remaining = float("inf") if deadline is None else max(0.0, deadline - time.perf_counter())
     effective_limit = min(float(tsp_time_limit), remaining)
 
@@ -34,11 +38,15 @@ def _build_truck_route(
             instance.S,
             instance.E,
             time_limit=float(effective_limit),
+            solver_backend=solver_backend,
+            threads=threads,
+            mip_emphasis=mip_emphasis,
         )
         if tsp_res.route is not None:
             route = tsp_res.route
             status = tsp_res.status
             proven_optimal = tsp_res.proven_optimal
+            actual_solver = tsp_res.solver_backend
 
     if route is None:
         route = nearest_neighbor_tour(
@@ -51,8 +59,9 @@ def _build_truck_route(
         route = two_opt(route, instance.truck_time, deadline=deadline)
         status = "HEURISTIC_2OPT"
         proven_optimal = False
+        actual_solver = "heuristic_2opt"
 
-    return route, status, proven_optimal
+    return route, status, proven_optimal, actual_solver
 
 
 def _candidate_edges(
@@ -126,6 +135,9 @@ def _integrate_drone_customers_stage_based(
     route: list[int] | None = None,
     time_limit: float = 3.0,
     deadline: float | None = None,
+    solver_backend: str = "highs",
+    threads: int | None = None,
+    mip_emphasis: int | None = None,
 ) -> FSTSPSolution | None:
     """Integrate remaining customers via 2-index stage-based MILP with fixed number of stages.
 
@@ -157,11 +169,15 @@ def _integrate_drone_customers_stage_based(
             num_stages=k_stages,
             fixed_truck_customers=truck_customers,
             fixed_drone_customers=drone_customers,
+            solver_backend=solver_backend,
+            threads=threads,
+            mip_emphasis=mip_emphasis,
         )
         if sol.feasible and sol.objective is not None and len(sol.drone_sorties) == len(drone_customers):
             sol.status = "constructed_stage_based"
             sol.metadata["construction_method"] = "stage_based_milp"
             sol.metadata["stage_integration_mode"] = "flexible_truck_route"
+            sol.metadata["construction_integration_backend"] = solver_backend
             return sol
     except Exception as exc:
         logger.debug("Flexible stage-based integration exception: %s", exc)
@@ -180,11 +196,15 @@ def _integrate_drone_customers_stage_based(
                     strengthen=True,
                     deadline=deadline,
                     fixed_truck_route=route,
+                    solver_backend=solver_backend,
+                    threads=threads,
+                    mip_emphasis=mip_emphasis,
                 )
                 if sol.feasible and sol.objective is not None and len(sol.drone_sorties) == len(drone_customers):
                     sol.status = "constructed_stage_based"
                     sol.metadata["construction_method"] = "stage_based_milp"
                     sol.metadata["stage_integration_mode"] = "fixed_truck_route"
+                    sol.metadata["construction_integration_backend"] = solver_backend
                     return sol
             except Exception as exc:
                 logger.debug("Fixed-route stage-based integration exception: %s", exc)
@@ -199,6 +219,9 @@ def construct_solution(
     exact_tsp_threshold: int = 60,
     tsp_time_limit: float = 5.0,
     deadline: float | None = None,
+    solver_backend: str = "highs",
+    threads: int | None = None,
+    mip_emphasis: int | None = None,
 ) -> FSTSPSolution:
     """Construct a certified feasible solution for CMSA component generation.
 
@@ -231,12 +254,15 @@ def construct_solution(
     # At most N iterations: each unsuccessful pass promotes at least one customer.
     for _ in range(instance.n + 1):
         truck_customers = sorted(truck_set)
-        route, mtz_status, mtz_optimal = _build_truck_route(
+        route, mtz_status, mtz_optimal, actual_tsp_backend = _build_truck_route(
             instance,
             truck_customers,
             exact_tsp_threshold,
             tsp_time_limit=tsp_time_limit,
             deadline=deadline,
+            solver_backend=solver_backend,
+            threads=threads,
+            mip_emphasis=mip_emphasis,
         )
         if deadline is not None and time.perf_counter() >= deadline:
             truck_set.update(customers)
@@ -253,6 +279,9 @@ def construct_solution(
                 route=route,
                 time_limit=sub_limit,
                 deadline=deadline,
+                solver_backend=solver_backend,
+                threads=threads,
+                mip_emphasis=mip_emphasis,
             )
             if stage_sol is not None and stage_sol.feasible:
                 stage_sol.metadata.update(
@@ -261,6 +290,9 @@ def construct_solution(
                         "truck_customers": len(stage_sol.truck_route) - 2 if stage_sol.truck_route else 0,
                         "drone_customers": len(stage_sol.drone_sorties),
                         "construction_method": "stage_based_milp",
+                        "construction_tsp_backend": actual_tsp_backend,
+                        "construction_integration_backend": solver_backend,
+                        "solver_backend": solver_backend,
                         "mtz_status": mtz_status,
                         "mtz_proven_optimal": mtz_optimal,
                     }
@@ -281,6 +313,9 @@ def construct_solution(
                         "truck_customers": len(route) - 2,
                         "drone_customers": len(heur_sorties),
                         "construction_method": "heuristic_fallback",
+                        "construction_tsp_backend": actual_tsp_backend,
+                        "construction_integration_backend": "heuristic_greedy",
+                        "solver_backend": solver_backend,
                         "mtz_status": mtz_status,
                         "mtz_proven_optimal": mtz_optimal,
                     },
@@ -309,12 +344,15 @@ def construct_solution(
             continue
 
     # All-truck fallback
-    route, mtz_status, mtz_optimal = _build_truck_route(
+    route, mtz_status, mtz_optimal, actual_tsp_backend = _build_truck_route(
         instance,
         customers,
         exact_tsp_threshold,
         tsp_time_limit=0.0 if deadline is not None and time.perf_counter() >= deadline else tsp_time_limit,
         deadline=deadline,
+        solver_backend=solver_backend,
+        threads=threads,
+        mip_emphasis=mip_emphasis,
     )
     fallback = FSTSPSolution(
         feasible=True,
@@ -324,6 +362,9 @@ def construct_solution(
         status="constructed_all_truck_fallback",
         metadata={
             "construction_method": "all_truck_fallback",
+            "construction_tsp_backend": actual_tsp_backend,
+            "construction_integration_backend": "none_all_truck",
+            "solver_backend": solver_backend,
             "objective_type": "certified_schedule",
             "mtz_status": mtz_status,
             "mtz_proven_optimal": mtz_optimal,

@@ -479,7 +479,7 @@ def extract_model_metrics(model: ModelData, active_components: set[Component] | 
     """Extract separated pre-presolve and structural metrics for Table 4 audit compliance."""
     lb = np.asarray(model.bounds.lb)
     ub = np.asarray(model.bounds.ub)
-    nvar = model.var.size
+    nvar = model.var.size if model.var is not None else (model.c.size if hasattr(model.c, "size") else len(model.c))
 
     free_var_mask = (ub > lb + 1e-9)
     fixed_zero_mask = (np.abs(lb) < 1e-9) & (np.abs(ub) < 1e-9)

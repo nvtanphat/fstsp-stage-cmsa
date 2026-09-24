@@ -16,8 +16,9 @@ class TSPResult:
     proven_optimal: bool
     cost: float | None
     runtime: float
-    raw_status: int
+    raw_status: int | str
     message: str
+    solver_backend: str = "highs"
 
 
 def solve_tsp_mtz_result(
@@ -26,6 +27,9 @@ def solve_tsp_mtz_result(
     start: int,
     end: int,
     time_limit: float = 10.0,
+    solver_backend: str = "highs",
+    threads: int | None = None,
+    mip_emphasis: int | None = None,
 ) -> TSPResult:
     """Solve directed Hamiltonian path start -> customers -> end with MTZ constraints, returning TSPResult."""
     if time_limit <= 0:
@@ -83,29 +87,33 @@ def solve_tsp_mtz_result(
         for idx, value in coeff:
             A[r, idx] += value
 
-    t0 = time.perf_counter()
-    res = milp(
-        c,
+    from fstsp.formulation.stage_based import ModelData
+    from fstsp.solver import get_solver_backend, SolverOptions
+
+    model = ModelData(
+        c=c,
         integrality=integrality,
         bounds=Bounds(lb, ub),
-        constraints=LinearConstraint(A.tocsr(), lows, highs),
-        options={"time_limit": time_limit, "presolve": True},
+        constraint=LinearConstraint(A.tocsr(), lows, highs),
+        var=None,
+        big_m=float(n),
     )
-    runtime = time.perf_counter() - t0
+    backend = get_solver_backend(solver_backend)
+    options = SolverOptions(
+        time_limit=float(time_limit),
+        threads=threads,
+        mip_emphasis=mip_emphasis,
+        presolve=True,
+    )
+    res = backend.solve(model, options)
+    runtime = res.runtime
+    raw_status = res.raw_status
+    msg = res.message
 
-    raw_status = int(res.status)
-    msg = str(res.message)
-
-    # Map SciPy status codes:
-    # 0: Optimal solution found
-    # 1: Iteration or time limit reached
-    # 2: Infeasible
-    # 3: Unbounded
-    # 4: Numerical / other error
     if res.x is None:
-        if raw_status == 1:
+        if raw_status in (1, 107, 108):
             status = "TIME_LIMIT"
-        elif raw_status == 2:
+        elif raw_status in (2, 103):
             status = "INFEASIBLE"
         elif raw_status == 3:
             status = "UNBOUNDED"
@@ -119,6 +127,7 @@ def solve_tsp_mtz_result(
             runtime=runtime,
             raw_status=raw_status,
             message=msg,
+            solver_backend=res.solver_name,
         )
 
     # Extract route from solution vector
@@ -150,20 +159,28 @@ def solve_tsp_mtz_result(
             runtime=runtime,
             raw_status=raw_status,
             message="Extracted tour is disconnected, subtoured, or incomplete",
+            solver_backend=res.solver_name,
         )
 
-    cost = float(res.fun) if res.fun is not None else sum(distance[u, v] for u, v in zip(route, route[1:]))
+    cost = float(res.objective) if res.objective is not None else sum(distance[u, v] for u, v in zip(route, route[1:]))
 
-    if raw_status == 0:
-        status = "OPTIMAL"
-        proven_optimal = True
-    elif raw_status == 1:
-        # Feasible incumbent found within time limit, but optimality not proven
-        status = "FEASIBLE"
-        proven_optimal = False
+    if res.solver_name == "cplex":
+        if raw_status in (101, 102) or (res.mip_gap is not None and res.mip_gap <= 1e-9):
+            status = "OPTIMAL"
+            proven_optimal = True
+        else:
+            status = "FEASIBLE"
+            proven_optimal = False
     else:
-        status = "FEASIBLE"
-        proven_optimal = False
+        if raw_status == 0:
+            status = "OPTIMAL"
+            proven_optimal = True
+        elif raw_status == 1:
+            status = "FEASIBLE"
+            proven_optimal = False
+        else:
+            status = "FEASIBLE"
+            proven_optimal = False
 
     return TSPResult(
         route=route,
@@ -173,6 +190,7 @@ def solve_tsp_mtz_result(
         runtime=runtime,
         raw_status=raw_status,
         message=msg,
+        solver_backend=res.solver_name,
     )
 
 
@@ -182,11 +200,23 @@ def solve_tsp_mtz(
     start: int,
     end: int,
     time_limit: float = 10.0,
+    solver_backend: str = "highs",
+    threads: int | None = None,
+    mip_emphasis: int | None = None,
 ) -> list[int] | None:
     """Solve directed Hamiltonian path start -> customers -> end with MTZ constraints.
 
     Returns the tour as a node-id list if a feasible tour was found, or None otherwise.
     Backward-compatible convenience wrapper around solve_tsp_mtz_result.
     """
-    result = solve_tsp_mtz_result(nodes, distance, start, end, time_limit=time_limit)
+    result = solve_tsp_mtz_result(
+        nodes,
+        distance,
+        start,
+        end,
+        time_limit=time_limit,
+        solver_backend=solver_backend,
+        threads=threads,
+        mip_emphasis=mip_emphasis,
+    )
     return result.route

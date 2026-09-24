@@ -11,13 +11,16 @@ for the Flying Sidekick Traveling Salesman Problem'
 """
 from __future__ import annotations
 
+import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
+import platform
 import re
+import shutil
 import sys
 import time
-import shutil
 
 import numpy as np
 import pandas as pd
@@ -26,6 +29,7 @@ from fstsp.algorithms.cmsa.algorithm import solve_cmsa
 from fstsp.config import load_config, load_paper_protocol, load_smoke_protocol
 from fstsp.data.agatz_parser import load_geometric_instance
 from fstsp.data.generator import generate_uniform_instance
+from fstsp.domain.instance import FSTSPInstance
 from fstsp.domain.solution import FSTSPSolution
 from fstsp.evaluation.metrics import solution_metrics
 from fstsp.evaluation.validator import validate_solution
@@ -35,27 +39,145 @@ from fstsp.visualization.route import plot_solution
 OUT = Path("/kaggle/working") if Path("/kaggle/working").exists() else Path("artifacts/kaggle")
 OUT.mkdir(parents=True, exist_ok=True)
 
+# Global in-memory instance manifest
+_INSTANCE_MANIFEST: list[dict] = []
 
-def _load_settings() -> dict:
+
+def _ensure_output_directories(out_dir: Path) -> None:
+    """Create structured output folders for artifacts, logs, and per-table results."""
+    for sub in [
+        "raw_results",
+        "solutions",
+        "solver_logs",
+        "table1",
+        "table2",
+        "table3",
+        "table4",
+    ]:
+        (out_dir / sub).mkdir(parents=True, exist_ok=True)
+
+
+def compute_instance_hash(instance: FSTSPInstance) -> str:
+    """Deterministic hash of instance coordinates, speeds, and drone constraints."""
+    hasher = hashlib.sha256()
+    hasher.update(str(instance.name).encode("utf-8"))
+    hasher.update(str(instance.n).encode("utf-8"))
+    hasher.update(f"{instance.truck_speed:.6f},{instance.drone_speed:.6f}".encode("utf-8"))
+    hasher.update(f"{instance.drone_endurance:.6f}".encode("utf-8"))
+    hasher.update(f"{instance.launch_time:.6f},{instance.recovery_time:.6f}".encode("utf-8"))
+    hasher.update(np.ascontiguousarray(instance.coords).tobytes())
+    hasher.update(np.ascontiguousarray(instance.depot_coord).tobytes())
+    if instance.drone_allowed is not None:
+        hasher.update(np.ascontiguousarray(instance.drone_allowed).tobytes())
+    return hasher.hexdigest()[:16]
+
+
+def compute_config_hash(settings: dict) -> str:
+    """Deterministic hash of solver settings, time limits, and age limit."""
+    keys = ["solver_backend", "threads", "mip_emphasis", "total_time", "mip_time", "age_limit", "exact_time_limit"]
+    payload = {k: settings.get(k) for k in sorted(keys)}
+    s = json.dumps(payload, sort_keys=True)
+    return hashlib.sha256(s.encode("utf-8")).hexdigest()[:16]
+
+
+def dump_environment_info(out_dir: Path) -> dict:
+    """Record environment and solver availability metadata."""
+    cplex_avail = False
+    cplex_ver = None
+    try:
+        import cplex  # noqa: F401
+        cplex_avail = True
+        cplex_ver = getattr(cplex, "__version__", "unknown")
+    except ImportError:
+        pass
+
+    env = {
+        "python_version": sys.version,
+        "platform": platform.platform(),
+        "cpu_count": os.cpu_count(),
+        "solvers": {
+            "highs": {"available": True, "backend": "scipy.optimize.milp"},
+            "cplex": {"available": cplex_avail, "version": cplex_ver},
+        },
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
+    }
+    env_file = out_dir / "environment.json"
+    env_file.write_text(json.dumps(env, indent=2), encoding="utf-8")
+    return env
+
+
+def parse_cli_args() -> argparse.Namespace:
+    """Parse optional command-line overrides."""
+    ap = argparse.ArgumentParser(description="Kaggle entry point for FSTSP Paper Reproduction")
+    ap.add_argument(
+        "--mode",
+        choices=[
+            "synthetic", "agatz",
+            "table1", "paper_table1",
+            "table2", "paper_table2",
+            "tables_1_and_2", "paper_tables_1_and_2",
+            "table3", "paper_table3",
+            "table4", "paper_table4",
+            "tables_3_and_4", "paper_tables_3_and_4",
+            "smoke", "paper", "full", "paper_full", "full_reproduction"
+        ],
+        default=None,
+    )
+    ap.add_argument("--backend", "--solver-backend", dest="solver_backend", choices=["highs", "cplex"], default=None)
+    ap.add_argument("--threads", type=int, default=None)
+    ap.add_argument("--mip-emphasis", type=int, default=None)
+    ap.add_argument("--out", type=str, default=None)
+    ap.add_argument("--sizes", type=str, default=None)
+    ap.add_argument("--seeds", type=str, default=None)
+    ap.add_argument("--total-time", type=float, default=None)
+    ap.add_argument("--mip-time", type=float, default=None)
+    ap.add_argument("--age-limit", type=int, default=None)
+    ap.add_argument("--exact-time-limit", type=float, default=None)
+    ap.add_argument("--resume", action="store_true", default=None)
+    ap.add_argument("--no-resume", action="store_false", dest="resume")
+    return ap.parse_args()
+
+
+def _load_settings(cli_args: argparse.Namespace | None = None) -> dict:
+    global OUT
+    if cli_args and cli_args.out:
+        OUT = Path(cli_args.out)
+        OUT.mkdir(parents=True, exist_ok=True)
+
+    _ensure_output_directories(OUT)
+
     config_file = os.getenv("FSTSP_CONFIG_FILE")
+    cli_mode = cli_args.mode if cli_args else None
     protocol_env = os.getenv("FSTSP_PROTOCOL", "paper").lower()
 
-    if config_file and Path(config_file).exists():
+    if cli_mode == "smoke":
+        cfg = load_smoke_protocol()
+    elif config_file and Path(config_file).exists():
         cfg = load_config(config_file)
     elif protocol_env in ("smoke", "smoke_45s"):
         cfg = load_smoke_protocol()
     else:
         cfg = load_paper_protocol()
 
-    backend_req = os.getenv("FSTSP_SOLVER_BACKEND", cfg.solver.backend)
-    threads_req = int(os.getenv("FSTSP_SOLVER_THREADS", str(cfg.solver.threads)))
+    backend_req = (
+        cli_args.solver_backend if (cli_args and cli_args.solver_backend)
+        else os.getenv("FSTSP_SOLVER_BACKEND", cfg.solver.backend)
+    )
+    threads_req = (
+        cli_args.threads if (cli_args and cli_args.threads is not None)
+        else int(os.getenv("FSTSP_SOLVER_THREADS", str(cfg.solver.threads)))
+    )
+    mip_emphasis_req = (
+        cli_args.mip_emphasis if (cli_args and cli_args.mip_emphasis is not None)
+        else cfg.solver.mip_emphasis
+    )
 
     defaults = {
-        "mode": os.getenv("FSTSP_KAGGLE_MODE", "synthetic"),
+        "mode": cli_mode or os.getenv("FSTSP_KAGGLE_MODE", "synthetic"),
         "protocol_type": cfg.experiments.protocol_type,
         "solver_backend": backend_req,
         "threads": threads_req,
-        "mip_emphasis": cfg.solver.mip_emphasis,
+        "mip_emphasis": mip_emphasis_req,
         "sizes": [int(x) for x in os.getenv("FSTSP_KAGGLE_SIZES", ",".join(str(s) for s in cfg.experiments.customer_sizes)).split(",") if x.strip()],
         "seeds": [int(x) for x in os.getenv("FSTSP_KAGGLE_SEEDS", "1,2").split(",") if x.strip()],
         "total_time": float(os.getenv("FSTSP_KAGGLE_TOTAL_TIME", str(cfg.cmsa.total_time_limit_seconds))),
@@ -69,28 +191,60 @@ def _load_settings() -> dict:
         "table4_age_limits": cfg.experiments.table4_age_limits,
         "resume": True,
     }
+
+    if cli_args:
+        if cli_args.sizes:
+            defaults["sizes"] = [int(x.strip()) for x in cli_args.sizes.split(",") if x.strip()]
+        if cli_args.seeds:
+            defaults["seeds"] = [int(x.strip()) for x in cli_args.seeds.split(",") if x.strip()]
+        if cli_args.total_time is not None:
+            defaults["total_time"] = cli_args.total_time
+        if cli_args.mip_time is not None:
+            defaults["mip_time"] = cli_args.mip_time
+        if cli_args.age_limit is not None:
+            defaults["age_limit"] = cli_args.age_limit
+        if cli_args.exact_time_limit is not None:
+            defaults["exact_time_limit"] = cli_args.exact_time_limit
+        if cli_args.resume is not None:
+            defaults["resume"] = cli_args.resume
+
     if "_EMBEDDED_SETTINGS" in globals() and isinstance(globals()["_EMBEDDED_SETTINGS"], dict):
         defaults.update(globals()["_EMBEDDED_SETTINGS"])
+
     settings_path = Path(__file__).with_name("experiment-settings.json")
     if settings_path.exists():
         defaults.update(json.loads(settings_path.read_text(encoding="utf-8")))
 
-    # Tag protocol clearly: distinguish paper reproduction from smoke tests
+    # Protocol classification
     if defaults["total_time"] >= 1800.0:
         defaults["protocol_label"] = "paper_1800s"
     else:
         defaults["protocol_label"] = f"smoke_{int(defaults['total_time'])}s"
 
+    defaults["effective_config_hash"] = compute_config_hash(defaults)
+
+    # Save effective config and environment metadata
+    (OUT / "effective_config.json").write_text(json.dumps(defaults, indent=2), encoding="utf-8")
+    dump_environment_info(OUT)
+
     return defaults
 
 
-def _find_cached_solution(tag: str, min_budget: float = 0.0) -> tuple[FSTSPSolution, Path] | None:
-    """Check if a completed solution for `tag` already exists in OUT or attached datasets."""
+def _find_cached_solution(
+    tag: str,
+    min_budget: float = 0.0,
+    expected_instance_hash: str | None = None,
+    expected_backend: str | None = None,
+    expected_age_limit: int | None = None,
+) -> tuple[FSTSPSolution, Path] | None:
+    """Check if a completed solution for `tag` already exists and satisfies provenance criteria."""
     search_dirs = [
         OUT / tag,
+        OUT / "solutions" / tag,
         Path("/kaggle/working/checkpoints") / tag,
         Path("checkpoints") / tag,
         Path("artifacts/kaggle_download_v5") / tag,
+        Path("artifacts/kaggle_v6_download") / tag,
     ]
     input_root = Path("/kaggle/input")
     if input_root.exists():
@@ -103,42 +257,87 @@ def _find_cached_solution(tag: str, min_budget: float = 0.0) -> tuple[FSTSPSolut
         if sol_file.exists():
             try:
                 sol = FSTSPSolution.from_json(sol_file)
-                if sol.feasible:
-                    if min_budget > 0 and sol.runtime < min_budget * 0.75:
+                if not sol.feasible:
+                    continue
+                meta = sol.metadata or {}
+                # Provenance: instance hash check
+                if expected_instance_hash and "instance_hash" in meta:
+                    if meta["instance_hash"] != expected_instance_hash:
                         continue
-                    return sol, sol_file
+                # Provenance: solver backend check
+                if expected_backend and "solver_backend" in meta:
+                    if meta["solver_backend"] != expected_backend:
+                        continue
+                # Provenance: age limit check
+                if expected_age_limit is not None and "age_limit" in meta:
+                    if meta["age_limit"] != expected_age_limit:
+                        continue
+                # Runtime budget threshold
+                if min_budget > 0 and sol.runtime < min_budget * 0.75:
+                    continue
+                return sol, sol_file
             except Exception:
                 continue
     return None
 
 
-def _solve_and_record_cmsa(inst, tag: str, settings: dict) -> dict:
+def _solve_and_record_cmsa(inst: FSTSPInstance, tag: str, settings: dict) -> dict:
     target_time = float(settings.get("total_time", 1800.0))
     allow_resume = bool(settings.get("resume", True))
     solver_backend = str(settings.get("solver_backend", "highs"))
     threads = settings.get("threads")
     mip_emphasis = settings.get("mip_emphasis")
+    age_limit = int(settings.get("age_limit", 2))
+
+    inst_hash = compute_instance_hash(inst)
+    cfg_hash = compute_config_hash(settings)
 
     if allow_resume:
-        cached = _find_cached_solution(tag, min_budget=target_time)
+        cached = _find_cached_solution(
+            tag,
+            min_budget=target_time,
+            expected_instance_hash=inst_hash,
+            expected_backend=solver_backend,
+            expected_age_limit=age_limit,
+        )
         if cached is not None:
             sol, sol_path = cached
-            print(f"[RESUME] Reusing existing solution for {tag} "
+            print(f"[RESUME] Reusing verified solution for {tag} "
                   f"(objective={sol.objective:.2f}, runtime={sol.runtime:.1f}s)")
             run_dir = OUT / tag
             run_dir.mkdir(parents=True, exist_ok=True)
             inst.to_json(run_dir / "instance.json")
             sol.to_json(run_dir / "solution.json")
+
+            sol_archive_dir = OUT / "solutions" / tag
+            sol_archive_dir.mkdir(parents=True, exist_ok=True)
+            inst.to_json(sol_archive_dir / "instance.json")
+            sol.to_json(sol_archive_dir / "solution.json")
+
             issues = validate_solution(inst, sol)
             png_src = sol_path.with_name("route.png")
             if png_src.exists() and not (run_dir / "route.png").exists():
                 shutil.copy2(png_src, run_dir / "route.png")
             elif sol.feasible and not issues and not (run_dir / "route.png").exists():
                 plot_solution(inst, sol, run_dir / "route.png")
+
+            _INSTANCE_MANIFEST.append({
+                "tag": tag,
+                "instance_name": inst.name,
+                "n": inst.n,
+                "instance_hash": inst_hash,
+                "config_hash": cfg_hash,
+                "method": "cmsa",
+                "solver_backend": sol.metadata.get("solver_backend", solver_backend),
+                "resumed": True,
+            })
+
             return {
                 "tag": tag,
                 "instance": inst.name,
                 "actual_customers": inst.n,
+                "instance_hash": inst_hash,
+                "config_hash": cfg_hash,
                 "method": "cmsa",
                 "solver_backend": sol.metadata.get("solver_backend", solver_backend),
                 **solution_metrics(sol),
@@ -151,23 +350,51 @@ def _solve_and_record_cmsa(inst, tag: str, settings: dict) -> dict:
         inst,
         total_time=target_time,
         mip_time=float(settings.get("mip_time", 15.0)),
-        age_limit=int(settings.get("age_limit", 2)),
+        age_limit=age_limit,
         seed=int(settings.get("solver_seed", 42)),
         solver_backend=solver_backend,
         threads=threads,
         mip_emphasis=mip_emphasis,
     )
+    sol.metadata["instance_hash"] = inst_hash
+    sol.metadata["config_hash"] = cfg_hash
+    sol.metadata["age_limit"] = age_limit
+    sol.metadata["solver_backend"] = solver_backend
+
     issues = validate_solution(inst, sol)
+
     run_dir = OUT / tag
     run_dir.mkdir(parents=True, exist_ok=True)
     inst.to_json(run_dir / "instance.json")
     sol.to_json(run_dir / "solution.json")
+
+    sol_archive_dir = OUT / "solutions" / tag
+    sol_archive_dir.mkdir(parents=True, exist_ok=True)
+    inst.to_json(sol_archive_dir / "instance.json")
+    sol.to_json(sol_archive_dir / "solution.json")
+
     if sol.feasible and not issues:
         plot_solution(inst, sol, run_dir / "route.png")
+        if not (sol_archive_dir / "route.png").exists():
+            shutil.copy2(run_dir / "route.png", sol_archive_dir / "route.png")
+
+    _INSTANCE_MANIFEST.append({
+        "tag": tag,
+        "instance_name": inst.name,
+        "n": inst.n,
+        "instance_hash": inst_hash,
+        "config_hash": cfg_hash,
+        "method": "cmsa",
+        "solver_backend": solver_backend,
+        "resumed": False,
+    })
+
     return {
         "tag": tag,
         "instance": inst.name,
         "actual_customers": inst.n,
+        "instance_hash": inst_hash,
+        "config_hash": cfg_hash,
         "method": "cmsa",
         "solver_backend": sol.metadata.get("solver_backend", solver_backend),
         **solution_metrics(sol),
@@ -177,10 +404,32 @@ def _solve_and_record_cmsa(inst, tag: str, settings: dict) -> dict:
     }
 
 
-def _solve_and_record_exact(inst, tag: str, time_limit: float, settings: dict | None = None) -> dict:
+def map_exact_status(sol: FSTSPSolution, time_limit: float) -> tuple[str, bool, bool]:
+    """Map solver status to standardized audit set: OPTIMAL, FEASIBLE, TIME_LIMIT, INFEASIBLE, ERROR.
+
+    Returns (status, timeout, proven_optimal).
+    """
+    raw_status = str(sol.status).lower()
+    proven = bool(sol.metadata.get("proven_optimal", False))
+
+    if raw_status in ("optimal", "proven_optimal") or (proven and sol.feasible):
+        return "OPTIMAL", False, True
+    if raw_status in ("time_limit_exhausted", "time_limit") or sol.runtime >= time_limit - 1.0:
+        return "TIME_LIMIT", True, False
+    if raw_status in ("infeasible",):
+        return "INFEASIBLE", False, False
+    if sol.feasible:
+        return "FEASIBLE", False, proven
+    return "ERROR", False, False
+
+
+def _solve_and_record_exact(inst: FSTSPInstance, tag: str, time_limit: float, settings: dict | None = None) -> dict:
     solver_backend = str(settings.get("solver_backend", "highs")) if settings else "highs"
     threads = settings.get("threads") if settings else None
     mip_emphasis = settings.get("mip_emphasis") if settings else None
+
+    inst_hash = compute_instance_hash(inst)
+    cfg_hash = compute_config_hash(settings) if settings else "default"
 
     sol = solve_stage_model(
         inst,
@@ -190,36 +439,65 @@ def _solve_and_record_exact(inst, tag: str, time_limit: float, settings: dict | 
         threads=threads,
         mip_emphasis=mip_emphasis,
     )
+    sol.metadata["instance_hash"] = inst_hash
+    sol.metadata["config_hash"] = cfg_hash
+    sol.metadata["solver_backend"] = solver_backend
+
     issues = validate_solution(inst, sol) if sol.feasible else []
     run_dir = OUT / tag
     run_dir.mkdir(parents=True, exist_ok=True)
     inst.to_json(run_dir / "instance.json")
     sol.to_json(run_dir / "solution.json")
+
+    sol_archive_dir = OUT / "solutions" / tag
+    sol_archive_dir.mkdir(parents=True, exist_ok=True)
+    inst.to_json(sol_archive_dir / "instance.json")
+    sol.to_json(sol_archive_dir / "solution.json")
+
     if sol.feasible and not issues:
         plot_solution(inst, sol, run_dir / "route.png")
-    is_timeout = (
-        not sol.feasible or
-        sol.status == "time_limit_exhausted" or
-        sol.runtime >= time_limit - 1.0 or
-        not sol.metadata.get("proven_optimal", False)
-    )
+        if not (sol_archive_dir / "route.png").exists():
+            shutil.copy2(run_dir / "route.png", sol_archive_dir / "route.png")
+
+    status, is_timeout, is_optimal = map_exact_status(sol, time_limit)
+
+    _INSTANCE_MANIFEST.append({
+        "tag": tag,
+        "instance_name": inst.name,
+        "n": inst.n,
+        "instance_hash": inst_hash,
+        "config_hash": cfg_hash,
+        "method": "exact",
+        "solver_backend": solver_backend,
+        "status": status,
+        "resumed": False,
+    })
+
     return {
         "tag": tag,
         "instance": inst.name,
         "actual_customers": inst.n,
+        "instance_hash": inst_hash,
+        "config_hash": cfg_hash,
         "method": "exact",
         "solver_backend": sol.metadata.get("solver_backend", solver_backend),
         "feasible": sol.feasible,
         "objective": sol.objective,
         "runtime": sol.runtime,
         "mip_gap": sol.mip_gap,
-        "status": sol.status,
+        "status": status,
         "timeout": is_timeout,
-        "proven_optimal": sol.metadata.get("proven_optimal", False),
+        "proven_optimal": is_optimal,
         "validation": "; ".join(issues),
         "n_variables": sol.metadata.get("n_variables"),
         "n_constraints": sol.metadata.get("n_constraints"),
         "n_nonzeros": sol.metadata.get("n_nonzeros"),
+        "free_variables": sol.metadata.get("free_variables"),
+        "active_constraints_before_presolve": sol.metadata.get("active_constraints_before_presolve"),
+        "active_nonzeros_before_presolve": sol.metadata.get("active_nonzeros_before_presolve"),
+        "presolved_variables": sol.metadata.get("presolved_variables"),
+        "presolved_constraints": sol.metadata.get("presolved_constraints"),
+        "presolved_nonzeros": sol.metadata.get("presolved_nonzeros"),
     }
 
 
@@ -280,7 +558,7 @@ def run_paper_table1(settings: dict) -> tuple[list[dict], pd.DataFrame]:
     print("\n=======================================================")
     print("REPRODUCING PAPER TABLE 1: maxradius Benchmark Instances")
     print("=======================================================")
-    time_limit = float(settings.get("exact_time_limit", 45.0))
+    time_limit = float(settings.get("exact_time_limit", 3600.0))
     per_setting = int(settings.get("instances_per_setting", 3))
 
     table1_configs = [
@@ -319,7 +597,7 @@ def run_paper_table1(settings: dict) -> tuple[list[dict], pd.DataFrame]:
             if res["mip_gap"] is not None:
                 group_gaps.append(res["mip_gap"] * 100.0)
 
-            print(f"  -> {p.name}: obj={res['objective']}, time={res['runtime']:.2f}s, optimal={res['proven_optimal']}")
+            print(f"  -> {p.name}: obj={res['objective']}, time={res['runtime']:.2f}s, status={res['status']}")
 
         avg_time = float(np.mean(group_runtimes)) if group_runtimes else 0.0
         avg_gap = f"{np.mean(group_gaps):.2f}%" if group_gaps else "-"
@@ -336,8 +614,13 @@ def run_paper_table1(settings: dict) -> tuple[list[dict], pd.DataFrame]:
         })
 
     df_summary = pd.DataFrame(summary_rows)
+    df_details = pd.DataFrame(detail_rows)
+
     df_summary.to_csv(OUT / "table1_reproduction.csv", index=False)
-    pd.DataFrame(detail_rows).to_csv(OUT / "table1_details.csv", index=False)
+    df_details.to_csv(OUT / "table1_details.csv", index=False)
+    df_summary.to_csv(OUT / "table1" / "table1_reproduction.csv", index=False)
+    df_details.to_csv(OUT / "table1" / "table1_details.csv", index=False)
+
     print("\n--- Table 1 Reproduction Summary ---")
     print(df_summary.to_string(index=False))
     return detail_rows, df_summary
@@ -383,7 +666,7 @@ def run_paper_table2(settings: dict) -> tuple[list[dict], pd.DataFrame]:
             if res["mip_gap"] is not None:
                 group_gaps.append(res["mip_gap"] * 100.0)
 
-            print(f"  -> {p.name}: obj={res['objective']}, time={res['runtime']:.2f}s, optimal={res['proven_optimal']}")
+            print(f"  -> {p.name}: obj={res['objective']}, time={res['runtime']:.2f}s, status={res['status']}")
 
         avg_time = float(np.mean(group_runtimes)) if group_runtimes else 0.0
         avg_gap = f"{np.mean(group_gaps):.2f}%" if group_gaps else "-"
@@ -400,8 +683,13 @@ def run_paper_table2(settings: dict) -> tuple[list[dict], pd.DataFrame]:
         })
 
     df_summary = pd.DataFrame(summary_rows)
+    df_details = pd.DataFrame(detail_rows)
+
     df_summary.to_csv(OUT / "table2_reproduction.csv", index=False)
-    pd.DataFrame(detail_rows).to_csv(OUT / "table2_details.csv", index=False)
+    df_details.to_csv(OUT / "table2_details.csv", index=False)
+    df_summary.to_csv(OUT / "table2" / "table2_reproduction.csv", index=False)
+    df_details.to_csv(OUT / "table2" / "table2_details.csv", index=False)
+
     print("\n--- Table 2 Reproduction Summary ---")
     print(df_summary.to_string(index=False))
     return detail_rows, df_summary
@@ -429,6 +717,21 @@ def run_paper_table3(settings: dict) -> tuple[list[dict], pd.DataFrame]:
         50: {"cplex": None, "csma": 503.86, "gap": None},
     }
 
+    # Strict reproduction classification
+    is_paper_complete = (
+        len(sizes) == 4
+        and set(sizes) == {20, 30, 40, 50}
+        and len(seeds) == 10
+        and cmsa_time >= 1800.0
+        and solver_backend == "cplex"
+    )
+    if is_paper_complete:
+        reproduction_level = "PAPER_PROTOCOL_COMPLETE"
+    elif cmsa_time < 1800.0:
+        reproduction_level = "SMOKE_TEST"
+    else:
+        reproduction_level = "PARTIAL_REPRODUCTION"
+
     detail_rows = []
     summary_rows = []
 
@@ -443,30 +746,36 @@ def run_paper_table3(settings: dict) -> tuple[list[dict], pd.DataFrame]:
                 n=n, seed=seed, width=100.0, truck_speed=1.0, drone_speed=2.0,
                 launch_time=1.0, recovery_time=1.0, novisit_fraction=0.0
             )
-            # 1. Run Exact (if budget allocated).
-            # Following paper Table 3: Exact MIP times out on instances with > 30 customers;
-            # skipping redundant exact solve for n >= 40 avoids wasting hours on intractable matrix assembly.
+            # 1. Run Exact (if budget allocated and within tractable size).
+            # Paper Table 3: Exact MIP is evaluated up to n=30 within 2 hours.
+            # For n >= 40, exact is intentionally skipped to avoid hours of combinatorial timeout.
             if exact_limit > 0 and n <= 30:
                 tag_exact = f"table3_n{n}_seed{seed}_exact"
                 res_exact = _solve_and_record_exact(inst, tag_exact, exact_limit, settings=settings)
             else:
+                inst_hash = compute_instance_hash(inst)
                 res_exact = {
                     "tag": f"table3_n{n}_seed{seed}_exact",
                     "instance": inst.name,
                     "actual_customers": inst.n,
+                    "instance_hash": inst_hash,
+                    "config_hash": settings.get("effective_config_hash", "default"),
                     "method": "exact",
                     "solver_backend": solver_backend,
                     "feasible": False,
                     "objective": None,
                     "runtime": 0.0,
                     "mip_gap": None,
-                    "status": "skipped",
-                    "timeout": True,
+                    "status": "NOT_RUN",
+                    "timeout": False,
                     "proven_optimal": False,
                     "validation": "",
                     "n_variables": None,
                     "n_constraints": None,
                     "n_nonzeros": None,
+                    "presolved_variables": None,
+                    "presolved_constraints": None,
+                    "presolved_nonzeros": None,
                 }
 
             # 2. Run CMSA
@@ -495,22 +804,25 @@ def run_paper_table3(settings: dict) -> tuple[list[dict], pd.DataFrame]:
                 "n": n,
                 "seed": seed,
                 "protocol_type": protocol_label,
+                "reproduction_level": reproduction_level,
                 "solver_backend": solver_backend,
                 "instance_dataset": "independent_synthetic_reproduction (40 instances, 10 per size)",
                 "exact_feasible": res_exact["feasible"],
                 "exact_objective": res_exact["objective"],
                 "exact_runtime": res_exact["runtime"],
+                "exact_status": res_exact["status"],
                 "exact_timeout": res_exact["timeout"],
                 "cmsa_feasible": res_cmsa["feasible"],
                 "cmsa_objective": res_cmsa["objective"],
                 "cmsa_runtime": res_cmsa["runtime"],
                 "improvement_gap_pct": gap_pct,
             })
-            print(f"  n={n} seed={seed}: Exact={res_exact['objective']} ({res_exact['runtime']:.1f}s) | "
+            print(f"  n={n} seed={seed}: Exact={res_exact['objective']} (status={res_exact['status']}, {res_exact['runtime']:.1f}s) | "
                   f"CMSA={res_cmsa['objective']} ({res_cmsa['runtime']:.1f}s) | Gap={gap_pct}")
 
-            # Checkpoint flush: save details after every single instance
+            # Checkpoint flush
             pd.DataFrame(detail_rows).to_csv(OUT / "table3_details.csv", index=False)
+            pd.DataFrame(detail_rows).to_csv(OUT / "table3" / "table3_details.csv", index=False)
             pd.DataFrame(detail_rows).to_csv(OUT / "benchmark.csv", index=False)
 
         avg_exact = f"{np.mean(exact_objs):.2f}" if exact_objs else "-"
@@ -521,6 +833,7 @@ def run_paper_table3(settings: dict) -> tuple[list[dict], pd.DataFrame]:
         summary_rows.append({
             "n": n,
             "Protocol": protocol_label,
+            "Reproduction Level": reproduction_level,
             "Solver": solver_backend,
             "Instances Tested": len(seeds),
             "Exact Solved": len(exact_objs),
@@ -531,24 +844,36 @@ def run_paper_table3(settings: dict) -> tuple[list[dict], pd.DataFrame]:
             "Paper CSMA Obj": paper_b.get("csma", "-"),
             "Paper Improvement": f"{paper_b.get('gap')}%" if paper_b.get("gap") else "-",
         })
-        # Checkpoint flush: update reproduction summary after every size n
         pd.DataFrame(summary_rows).to_csv(OUT / "table3_reproduction.csv", index=False)
+        pd.DataFrame(summary_rows).to_csv(OUT / "table3" / "table3_reproduction.csv", index=False)
 
     df_summary = pd.DataFrame(summary_rows)
+    df_details = pd.DataFrame(detail_rows)
+
     df_summary.to_csv(OUT / "table3_reproduction.csv", index=False)
-    pd.DataFrame(detail_rows).to_csv(OUT / "table3_details.csv", index=False)
+    df_details.to_csv(OUT / "table3_details.csv", index=False)
+    df_summary.to_csv(OUT / "table3" / "table3_reproduction.csv", index=False)
+    df_details.to_csv(OUT / "table3" / "table3_details.csv", index=False)
+
     print("\n--- Table 3 Reproduction Summary (Comparison with Paper) ---")
     print(df_summary.to_string(index=False))
     return detail_rows, df_summary
 
 
 def run_paper_table4(settings: dict) -> tuple[list[dict], pd.DataFrame]:
-    """Reproduce Paper Table 4: Statistics on Constraints, Variables, Nonzero Coefficients (age=2 vs age=5)."""
+    """Reproduce Paper Table 4: Statistics on Constraints, Variables, Nonzero Coefficients (age=2 vs age=5).
+
+    Profiles identical instances across both age limits, recording per-iteration model metrics.
+    """
     print("\n==========================================================================")
     print("REPRODUCING PAPER TABLE 4: Model Statistics for age=2 vs age=5")
     print("==========================================================================")
     sizes = [int(x) for x in settings.get("table3_sizes", [20, 30, 40, 50])]
-    seeds = [1, 2]  # representative seeds
+    # In full reproduction, evaluate 10 instances (seeds 1..10) per setting as in the paper.
+    seeds = [int(x) for x in settings.get("table3_seeds", list(range(1, 11)))]
+    if settings.get("protocol_label", "").startswith("smoke"):
+        seeds = [1, 2]
+
     total_time = float(settings.get("total_time", 30.0))
     mip_time = float(settings.get("mip_time", 8.0))
     solver_backend = str(settings.get("solver_backend", "highs"))
@@ -560,12 +885,17 @@ def run_paper_table4(settings: dict) -> tuple[list[dict], pd.DataFrame]:
         50: {"age2": (14638, 3425, 153145), "age5": (48327, 7971, 467232)},
     }
 
+    iteration_rows = []
     detail_rows = []
     summary_rows = []
 
     for n in sizes:
         print(f"\nProfiling model size for n={n}...")
-        stats_by_age = {2: {"cons": [], "vars": [], "coefs": []}, 5: {"cons": [], "vars": [], "coefs": []}}
+        # Metrics stored separately: pre-presolve vs post-presolve
+        stats_by_age = {
+            2: {"pre_cons": [], "pre_vars": [], "pre_coefs": [], "post_cons": [], "post_vars": [], "post_coefs": []},
+            5: {"pre_cons": [], "pre_vars": [], "pre_coefs": [], "post_cons": [], "post_vars": [], "post_coefs": []},
+        }
 
         for age in [2, 5]:
             for seed in seeds:
@@ -584,73 +914,104 @@ def run_paper_table4(settings: dict) -> tuple[list[dict], pd.DataFrame]:
                 meta = res.get("metadata", {})
                 hist = meta.get("history", [])
 
-                # Extract model statistics from the last restricted MIP iteration
+                # Collect all iterations for raw iteration tracking
+                for it_idx, it_data in enumerate(hist):
+                    it_orig_vars = it_data.get("original_variables", it_data.get("n_variables"))
+                    it_orig_cons = it_data.get("original_constraints", it_data.get("n_constraints"))
+                    it_orig_coef = it_data.get("original_nonzeros", it_data.get("n_nonzeros"))
+                    it_free_vars = it_data.get("free_variables", it_data.get("n_active_variables", 0))
+                    it_active_cons = it_data.get("active_constraints_before_presolve", it_data.get("n_active_constraints", 0))
+                    it_active_coef = it_data.get("active_nonzeros_before_presolve", it_data.get("n_active_nonzeros", 0))
+                    it_fixed_zero = it_data.get("fixed_zero_variables", 0)
+                    it_fixed_one = it_data.get("fixed_one_variables", 0)
+                    it_p_vars = it_data.get("presolved_variables")
+                    it_p_cons = it_data.get("presolved_constraints")
+                    it_p_coef = it_data.get("presolved_nonzeros")
+
+                    iteration_rows.append({
+                        "n": n,
+                        "age": age,
+                        "seed": seed,
+                        "iteration": it_idx + 1,
+                        "original_variables": it_orig_vars,
+                        "original_constraints": it_orig_cons,
+                        "original_nonzeros": it_orig_coef,
+                        "fixed_zero_variables": it_fixed_zero,
+                        "fixed_one_variables": it_fixed_one,
+                        "free_variables": it_free_vars,
+                        "active_constraints_before_presolve": it_active_cons,
+                        "active_nonzeros_before_presolve": it_active_coef,
+                        "presolved_variables": it_p_vars,
+                        "presolved_constraints": it_p_cons,
+                        "presolved_nonzeros": it_p_coef,
+                        "solver_backend": solver_backend,
+                    })
+
+                # Profile last iteration (or instance average across iterations)
                 last = hist[-1] if hist else {}
+                n_vars = last.get("original_variables", last.get("n_variables"))
+                n_free_vars = last.get("free_variables", last.get("n_active_variables"))
+                n_cons = last.get("active_constraints_before_presolve") or last.get("n_active_constraints") or last.get("n_constraints")
+                n_coef = last.get("active_nonzeros_before_presolve") or last.get("n_active_nonzeros") or last.get("n_nonzeros")
 
-                # Active components (strictly separate from mathematical variables)
-                n_active_comp = last.get("active_components")
-
-                # Decomposed variable counts
-                n_vars = last.get("n_variables")
-                n_free_vars = last.get("n_free_variables")
-                n_fixed_zero = last.get("n_fixed_zero_variables")
-                n_fixed_one = last.get("n_fixed_one_variables")
-
-                # Constraints and nonzeros
-                n_cons = last.get("n_active_constraints") or last.get("n_constraints")
-                n_coef = last.get("n_active_nonzeros") or last.get("n_nonzeros")
-
-                # Post-presolve dimensions (available when CPLEX is used)
                 p_vars = last.get("presolved_variables")
                 p_cons = last.get("presolved_constraints")
                 p_coef = last.get("presolved_nonzeros")
 
-                # Determine reported metric: prefer CPLEX post-presolve if available, else active pre-presolve
-                rep_vars = p_vars if p_vars is not None else n_vars
-                rep_cons = p_cons if p_cons is not None else n_cons
-                rep_coef = p_coef if p_coef is not None else n_coef
+                if n_cons is not None: stats_by_age[age]["pre_cons"].append(n_cons)
+                if n_free_vars is not None: stats_by_age[age]["pre_vars"].append(n_free_vars)
+                if n_coef is not None: stats_by_age[age]["pre_coefs"].append(n_coef)
 
-                if rep_vars: stats_by_age[age]["vars"].append(rep_vars)
-                if rep_cons: stats_by_age[age]["cons"].append(rep_cons)
-                if rep_coef: stats_by_age[age]["coefs"].append(rep_coef)
+                if p_cons is not None: stats_by_age[age]["post_cons"].append(p_cons)
+                if p_vars is not None: stats_by_age[age]["post_vars"].append(p_vars)
+                if p_coef is not None: stats_by_age[age]["post_coefs"].append(p_coef)
 
                 detail_rows.append({
                     "n": n,
                     "age": age,
                     "seed": seed,
-                    "active_components": n_active_comp,
-                    "n_variables": n_vars,
-                    "n_free_variables": n_free_vars,
-                    "n_fixed_zero_variables": n_fixed_zero,
-                    "n_fixed_one_variables": n_fixed_one,
-                    "n_constraints": n_cons,
-                    "n_nonzeros": n_coef,
+                    "original_variables": n_vars,
+                    "free_variables": n_free_vars,
+                    "fixed_zero_variables": last.get("fixed_zero_variables", 0),
+                    "fixed_one_variables": last.get("fixed_one_variables", 0),
+                    "active_constraints_before_presolve": n_cons,
+                    "active_nonzeros_before_presolve": n_coef,
                     "presolved_variables": p_vars,
                     "presolved_constraints": p_cons,
                     "presolved_nonzeros": p_coef,
                     "solver_backend": solver_backend,
-                    "measurement_method": "CPLEX post-presolve dimensions" if p_vars is not None else "Active dimensions before presolve (HiGHS)",
+                    "measurement_method": "CPLEX post-presolve dimensions" if p_vars is not None else "Active pre-presolve dimensions (HiGHS)",
                 })
 
         p_ref = paper_table4_ref.get(n, {})
-        is_presolved = any(stats_by_age[2].get("presolved_vars", []))
+        has_cplex_presolve = bool(stats_by_age[2]["post_vars"])
+
         summary_rows.append({
             "n": n,
             "Solver": solver_backend,
-            "Measurement": "CPLEX post-presolve" if solver_backend == "cplex" else "Pre-presolve (HiGHS)",
-            "Our age=2 Ave.#Cons": int(np.mean(stats_by_age[2]["cons"])) if stats_by_age[2]["cons"] else "-",
-            "Our age=2 Ave.#Var": int(np.mean(stats_by_age[2]["vars"])) if stats_by_age[2]["vars"] else "-",
-            "Our age=2 Ave.#Coef": int(np.mean(stats_by_age[2]["coefs"])) if stats_by_age[2]["coefs"] else "-",
+            "Measurement": "CPLEX post-presolve" if has_cplex_presolve else "Pre-presolve active subproblem (HiGHS)",
+            "Our age=2 Ave.#Cons": int(np.mean(stats_by_age[2]["post_cons" if has_cplex_presolve else "pre_cons"])) if (stats_by_age[2]["post_cons" if has_cplex_presolve else "pre_cons"]) else "-",
+            "Our age=2 Ave.#Var": int(np.mean(stats_by_age[2]["post_vars" if has_cplex_presolve else "pre_vars"])) if (stats_by_age[2]["post_vars" if has_cplex_presolve else "pre_vars"]) else "-",
+            "Our age=2 Ave.#Coef": int(np.mean(stats_by_age[2]["post_coefs" if has_cplex_presolve else "pre_coefs"])) if (stats_by_age[2]["post_coefs" if has_cplex_presolve else "pre_coefs"]) else "-",
             "Paper age=2 Cons/Var/Coef": f"{p_ref.get('age2', '-')}",
-            "Our age=5 Ave.#Cons": int(np.mean(stats_by_age[5]["cons"])) if stats_by_age[5]["cons"] else "-",
-            "Our age=5 Ave.#Var": int(np.mean(stats_by_age[5]["vars"])) if stats_by_age[5]["vars"] else "-",
-            "Our age=5 Ave.#Coef": int(np.mean(stats_by_age[5]["coefs"])) if stats_by_age[5]["coefs"] else "-",
+            "Our age=5 Ave.#Cons": int(np.mean(stats_by_age[5]["post_cons" if has_cplex_presolve else "pre_cons"])) if (stats_by_age[5]["post_cons" if has_cplex_presolve else "pre_cons"]) else "-",
+            "Our age=5 Ave.#Var": int(np.mean(stats_by_age[5]["post_vars" if has_cplex_presolve else "pre_vars"])) if (stats_by_age[5]["post_vars" if has_cplex_presolve else "pre_vars"]) else "-",
+            "Our age=5 Ave.#Coef": int(np.mean(stats_by_age[5]["post_coefs" if has_cplex_presolve else "pre_coefs"])) if (stats_by_age[5]["post_coefs" if has_cplex_presolve else "pre_coefs"]) else "-",
             "Paper age=5 Cons/Var/Coef": f"{p_ref.get('age5', '-')}",
         })
 
     df_summary = pd.DataFrame(summary_rows)
+    df_details = pd.DataFrame(detail_rows)
+    df_iterations = pd.DataFrame(iteration_rows)
+
     df_summary.to_csv(OUT / "table4_reproduction.csv", index=False)
-    pd.DataFrame(detail_rows).to_csv(OUT / "table4_details.csv", index=False)
+    df_details.to_csv(OUT / "table4_details.csv", index=False)
+    df_iterations.to_csv(OUT / "table4_iterations_raw.csv", index=False)
+
+    df_summary.to_csv(OUT / "table4" / "table4_reproduction.csv", index=False)
+    df_details.to_csv(OUT / "table4" / "table4_details.csv", index=False)
+    df_iterations.to_csv(OUT / "table4" / "table4_iterations_raw.csv", index=False)
+
     print("\n--- Table 4 Reproduction Summary ---")
     print(df_summary.to_string(index=False))
     return detail_rows, df_summary
@@ -693,10 +1054,13 @@ def run_full_paper_reproduction(settings: dict) -> list[dict]:
     t1_md = df_t1.to_markdown(index=False) if df_t1 is not None else "_Table 1 evaluation not available._"
     t2_md = df_t2.to_markdown(index=False) if df_t2 is not None else "_Table 2 evaluation not available._"
 
+    # Save manifest
+    (OUT / "instance_manifest.json").write_text(json.dumps(_INSTANCE_MANIFEST, indent=2), encoding="utf-8")
+
     # Generate Markdown Synthesis Report
     report_md = f"""# Comprehensive Scientific Reproduction Report
 **Paper**: *A 2-index Stage-based Formulation and a Construct-Merge-Solve & Adapt Algorithm for the FSTSP*
-**Execution Environment**: Kaggle Cloud (HiGHS Open-Source MILP Solver via SciPy)
+**Execution Environment**: Kaggle Cloud (Solver: {settings.get('solver_backend', 'highs')})
 **Total Wall-Clock Runtime**: {time.perf_counter() - started_all:.2f} seconds
 
 ## 1. Executive Summary
@@ -716,7 +1080,7 @@ def run_full_paper_reproduction(settings: dict) -> list[dict]:
 ## 5. Table 2: novisit Benchmark Instances (Agatz n=10)
 {t2_md}
 
-Outputs and route visualizations are archived in the artifacts directory.
+Outputs, manifests, and route visualizations are archived in the artifacts directory.
 """
     (OUT / "paper_reproduction_report.md").write_text(report_md, encoding="utf-8")
     print("\n" + report_md)
@@ -724,11 +1088,12 @@ Outputs and route visualizations are archived in the artifacts directory.
 
 
 def main() -> None:
-    settings = _load_settings()
+    cli_args = parse_cli_args()
+    settings = _load_settings(cli_args)
     mode = str(settings.get("mode", "synthetic")).lower()
     print(f"Running mode: {mode} with settings: {settings}")
 
-    if mode == "synthetic":
+    if mode in ("synthetic", "smoke"):
         rows = _run_synthetic(settings)
     elif mode == "agatz":
         rows = _run_agatz(settings)
@@ -748,14 +1113,16 @@ def main() -> None:
         r3, _ = run_paper_table3(settings)
         r4, _ = run_paper_table4(settings)
         rows = r3 + r4
-    elif mode in ("full", "paper_full", "full_reproduction"):
+    elif mode in ("paper", "full", "paper_full", "full_reproduction"):
         rows = run_full_paper_reproduction(settings)
     else:
         raise ValueError(f"Unsupported Kaggle mode: {mode}")
 
     df = pd.DataFrame(rows)
     df.to_csv(OUT / "benchmark.csv", index=False)
+    df.to_csv(OUT / "raw_results" / "benchmark.csv", index=False)
     (OUT / "run_settings.json").write_text(json.dumps(settings, indent=2), encoding="utf-8")
+    (OUT / "instance_manifest.json").write_text(json.dumps(_INSTANCE_MANIFEST, indent=2), encoding="utf-8")
     print(f"\nAll outputs successfully written to {OUT}")
 
 

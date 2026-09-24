@@ -23,6 +23,10 @@ class CplexBackend(SolverBackend):
     - Time limit = 15s (restricted MIP) or 3600s/7200s (exact)
     """
 
+    @property
+    def name(self) -> str:
+        return "cplex"
+
     @classmethod
     def is_available(cls) -> bool:
         try:
@@ -51,7 +55,7 @@ class CplexBackend(SolverBackend):
         c.objective.set_sense(c.objective.sense.minimize)
 
         # Variables: obj, lb, ub, types, names
-        nvar = model.var.size
+        nvar = model.c.size if hasattr(model.c, "size") else len(model.c)
         obj = model.c.tolist()
         lb = [0.0 if np.isneginf(x) else float(x) for x in model.bounds.lb]
         ub = [1e20 if np.isposinf(x) else float(x) for x in model.bounds.ub]

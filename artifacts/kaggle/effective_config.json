@@ -1,0 +1,48 @@
+{
+  "mode": "synthetic",
+  "protocol_type": "paper_protocol",
+  "solver_backend": "highs",
+  "threads": 8,
+  "mip_emphasis": 5,
+  "sizes": [
+    20,
+    30,
+    40,
+    50
+  ],
+  "seeds": [
+    1,
+    2
+  ],
+  "total_time": 45.0,
+  "mip_time": 8.0,
+  "age_limit": 2,
+  "max_instances": 6,
+  "exact_time_limit": 7200.0,
+  "instances_per_setting": 10,
+  "table3_sizes": [
+    20,
+    30,
+    40,
+    50
+  ],
+  "table3_seeds": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+  ],
+  "table4_age_limits": [
+    2,
+    5
+  ],
+  "resume": true,
+  "protocol_label": "smoke_45s",
+  "effective_config_hash": "213f6111f9c12a9d"
+}

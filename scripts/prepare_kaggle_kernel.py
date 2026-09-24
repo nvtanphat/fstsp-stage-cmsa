@@ -51,6 +51,8 @@ def main() -> None:
         shutil.rmtree(out)
     out.mkdir(parents=True)
     shutil.copytree(ROOT / "src" / "fstsp", out / "fstsp")
+    if (ROOT / "configs").exists():
+        shutil.copytree(ROOT / "configs", out / "configs")
     settings = {
         "mode": args.mode,
         "sizes": _parse_int_list(args.sizes),
@@ -78,6 +80,10 @@ def main() -> None:
         for py_file in (ROOT / "src" / "fstsp").rglob("*.py"):
             arcname = py_file.relative_to(ROOT / "src").as_posix()
             zf.write(py_file, arcname)
+        if (ROOT / "configs").exists():
+            for cfg_file in (ROOT / "configs").rglob("*.*"):
+                arcname = cfg_file.relative_to(ROOT).as_posix()
+                zf.write(cfg_file, arcname)
     fstsp_bundle_b64 = base64.b64encode(buf.getvalue()).decode("ascii")
 
     bootstrap = (

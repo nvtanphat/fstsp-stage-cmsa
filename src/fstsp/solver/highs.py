@@ -12,6 +12,10 @@ from fstsp.solver.base import SolverBackend, SolverOptions, SolverResult
 class HighsBackend(SolverBackend):
     """Open-source HiGHS solver backend using scipy.optimize.milp."""
 
+    @property
+    def name(self) -> str:
+        return "highs"
+
     @classmethod
     def is_available(cls) -> bool:
         return True
