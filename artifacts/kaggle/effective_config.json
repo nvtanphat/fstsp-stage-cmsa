@@ -1,7 +1,7 @@
 {
   "mode": "synthetic",
   "protocol_type": "paper_protocol",
-  "solver_backend": "highs",
+  "solver_backend": "cplex",
   "threads": 8,
   "mip_emphasis": 5,
   "sizes": [
@@ -14,8 +14,8 @@
     1,
     2
   ],
-  "total_time": 45.0,
-  "mip_time": 8.0,
+  "total_time": 1800.0,
+  "mip_time": 15.0,
   "age_limit": 2,
   "max_instances": 6,
   "exact_time_limit": 7200.0,
@@ -42,7 +42,15 @@
     2,
     5
   ],
+  "table1_time_limit": 3600.0,
+  "table2_time_limit": 3600.0,
+  "table3_exact_time_limit": 7200.0,
+  "table3_cmsa_time_limit": 1800.0,
+  "table3_restricted_mip_time_limit": 15.0,
+  "table4_restricted_mip_time_limit": 15.0,
+  "table4_total_time_limit": 1800.0,
   "resume": true,
-  "protocol_label": "smoke_45s",
-  "effective_config_hash": "213f6111f9c12a9d"
+  "schema_version": "1.0.0",
+  "protocol_label": "paper_1800s",
+  "effective_config_hash": "00fdef9c1976a378"
 }

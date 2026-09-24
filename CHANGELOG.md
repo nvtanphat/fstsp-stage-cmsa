@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.4.4 — resume cache integrity, table-specific protocol limits, Table 3 completion gating & Table 4 iteration schema
+
+- **P0 — Strict Resume Cache Validation (`kaggle/run_experiment.py`)**:
+  - Upgraded `compute_config_hash()` to include `solver_seed`, `schema_version` (1.0.0), and full solver/algorithm parameter set.
+  - Required full provenance verification for resuming any cached solution: `instance_hash`, `schema_version`, `solver_backend`, `solver_seed`, `method`, `age_limit`, `total_time`, and `mip_time`.
+  - Missing or legacy metadata is explicitly rejected with `[RESUME REJECTED] ... LEGACY_UNVERIFIED` and the instance is immediately re-run.
+  - Solution files must exist, parse valid JSON, satisfy `sol.feasible == True`, and pass independent zero-tolerance physical schedule certification (`validate_solution(inst, sol) == []`).
+- **P0 — Table-Specific Paper Protocol Time Limits (`configs/paper_protocol.yaml`, `src/fstsp/config.py`)**:
+  - Decoupled experimental time limits per table:
+    - Table 1 (Agatz Maxradius): 3600s
+    - Table 2 (Agatz Novisit): 3600s
+    - Table 3 Exact: 7200s (documented as stemming from results section discussion, distinct from Section 4 general 3600s)
+    - Table 3 CMSA: 1800s total, $t_{\text{MIP}} = 15$s, age limit = 2
+    - Table 4 (Age sensitivity): 1800s total, $t_{\text{MIP}} = 15$s, age $\in \{2, 5\}$
+  - Runner logs full effective configuration before initiating solver calls.
+- **P0 — Table 3 Completion Status Gate (`evaluate_table3_completion_status`)**:
+  - Implemented post-run evaluator with states `NOT_STARTED`, `RUNNING`, `PARTIAL`, `COMPLETE`, and `FAILED`.
+  - Strict gating: `COMPLETE` requires exactly 40 unique certified instances (10 per $n \in \{20, 30, 40, 50\}$), 1800s budget, CPLEX backend, zero duplicates, independent validator certification, and strict isolation from smoke test directories.
+- **P0 — Table 4 Iteration Recording & Metric Provenance**:
+  - Exported complete 18-field iteration record to `table4_iterations_raw.csv`.
+  - Strict distinction maintained between Pre-Presolve active matrix dimensions (`free_variables`, `active_constraints_before_presolve`, `active_nonzeros_before_presolve`) and Post-Presolve dimensions (`presolved_variables`, `presolved_constraints`, `presolved_nonzeros`).
+- **11 New Mandatory Audit Unit Tests (`tests/unit/`)**:
+  - `test_resume_missing_metadata.py`, `test_resume_config_mismatch.py`, `test_resume_solver_seed.py`, `test_resume_solution_validation.py`
+  - `test_table12_time_limits.py`, `test_table3_completion_status.py`, `test_table3_duplicate_instances.py`, `test_table3_smoke_isolation.py`
+  - `test_table4_iteration_statistics.py`, `test_table4_metric_provenance.py`, `test_paper_protocol_integration.py`
+  - Total test suite expanded to **118 automated tests**.
+
 ## 0.4.3 — modular solver backends, CPLEX integration, config synchronization & Table 4 precision
 
 - **P0 — Modular Solver Hierarchy (`fstsp.solver`)**:

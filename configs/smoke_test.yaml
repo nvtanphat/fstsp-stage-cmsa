@@ -14,22 +14,51 @@ solver:
   mip_emphasis: null
   alternative_open_source_backend: highs
 
-exact_time_limits:
-  table1_agatz_maxradius_seconds: 5
-  table2_agatz_novisit_seconds: 5
-  table3_cplex_exact_seconds: 10
-
-cmsa:
-  age_limit: 2
-  restricted_mip_time_limit_seconds: 3
-  total_time_limit_seconds: 10
-  truck_sample_ratio: 0.65
-  exact_tsp_threshold: 60
-
 experiments:
+  protocol_type: "smoke_test"
+  validate_solutions: true
+  require_raw_results: false
+  figure1_customer_size: 6
+
+  # Backward compatibility aliases
   instances_per_size: 2
   customer_sizes: [6, 10]
   table4_age_limits: [2]
-  require_raw_results: false
-  validate_solutions: true
-  protocol_type: "smoke_test"
+
+  table1:
+    method: exact
+    time_limit_seconds: 5.0
+
+  table2:
+    method: exact
+    time_limit_seconds: 5.0
+
+  table3:
+    exact_time_limit_seconds: 10.0
+    cmsa_time_limit_seconds: 10.0
+    restricted_mip_time_limit_seconds: 3.0
+    age_limit: 2
+    truck_sample_ratio: 0.65
+    exact_tsp_threshold: 60
+    instances_per_size: 2
+    customer_sizes: [6, 10]
+
+  table4:
+    age_limits: [2]
+    restricted_mip_time_limit_seconds: 3.0
+    total_time_limit_seconds: 10.0
+    instances_per_size: 2
+    customer_sizes: [6, 10]
+
+# Global fallback defaults
+exact_time_limits:
+  table1_agatz_maxradius_seconds: 5.0
+  table2_agatz_novisit_seconds: 5.0
+  table3_cplex_exact_seconds: 10.0
+
+cmsa:
+  age_limit: 2
+  restricted_mip_time_limit_seconds: 3.0
+  total_time_limit_seconds: 10.0
+  truck_sample_ratio: 0.65
+  exact_tsp_threshold: 60

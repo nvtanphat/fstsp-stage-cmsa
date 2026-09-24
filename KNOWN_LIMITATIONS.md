@@ -68,3 +68,11 @@ This document outlines the methodological differences, environment constraints, 
   3. **Greedy Heuristic Fallback**: Ensures algorithm robustness without stalling.
   4. **All-Truck Construction**: Safe, certified incumbent guaranteeing CMSA feasibility.
 - The active method is tracked per iteration under `construction_method` and `stage_integration_mode`.
+
+---
+
+## 5. Table 3 Protocol Completion Gating
+
+- An execution run is evaluated as `COMPLETE` only when all 40 instances across $n \in \{20, 30, 40, 50\}$ are solved under the full paper budget (1800s), utilizing CPLEX, certified by the zero-tolerance physical validator, without duplicates or smoke test contamination.
+- Any local, CI, or partial execution (e.g. running 12 instances, or running under HiGHS, or running short budgets) is programmatically marked `PARTIAL` (e.g. `Completed: 12/40 | Missing: 28`) or `smoke_test`, preventing premature claims of full paper reproduction.
+

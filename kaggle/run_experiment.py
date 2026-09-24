@@ -36,6 +36,8 @@ from fstsp.evaluation.validator import validate_solution
 from fstsp.formulation.stage_based import solve_stage_model
 from fstsp.visualization.route import plot_solution
 
+SCHEMA_VERSION = "1.0.0"
+
 OUT = Path("/kaggle/working") if Path("/kaggle/working").exists() else Path("artifacts/kaggle")
 OUT.mkdir(parents=True, exist_ok=True)
 
@@ -73,8 +75,21 @@ def compute_instance_hash(instance: FSTSPInstance) -> str:
 
 
 def compute_config_hash(settings: dict) -> str:
-    """Deterministic hash of solver settings, time limits, and age limit."""
-    keys = ["solver_backend", "threads", "mip_emphasis", "total_time", "mip_time", "age_limit", "exact_time_limit"]
+    """Deterministic hash of all solver settings, seeds, time limits, and algorithm parameters."""
+    keys = [
+        "age_limit",
+        "dataset_id",
+        "exact_time_limit",
+        "method",
+        "mip_emphasis",
+        "mip_time",
+        "schema_version",
+        "solver_backend",
+        "solver_seed",
+        "solver_version",
+        "threads",
+        "total_time",
+    ]
     payload = {k: settings.get(k) for k in sorted(keys)}
     s = json.dumps(payload, sort_keys=True)
     return hashlib.sha256(s.encode("utf-8")).hexdigest()[:16]
@@ -189,7 +204,16 @@ def _load_settings(cli_args: argparse.Namespace | None = None) -> dict:
         "table3_sizes": cfg.experiments.customer_sizes,
         "table3_seeds": list(range(1, cfg.experiments.instances_per_size + 1)),
         "table4_age_limits": cfg.experiments.table4_age_limits,
+        # Distinct per-experiment paper limits:
+        "table1_time_limit": float(cfg.experiments.table1.time_limit_seconds),
+        "table2_time_limit": float(cfg.experiments.table2.time_limit_seconds),
+        "table3_exact_time_limit": float(cfg.experiments.table3.exact_time_limit_seconds),
+        "table3_cmsa_time_limit": float(cfg.experiments.table3.cmsa_time_limit_seconds),
+        "table3_restricted_mip_time_limit": float(cfg.experiments.table3.restricted_mip_time_limit_seconds),
+        "table4_restricted_mip_time_limit": float(cfg.experiments.table4.restricted_mip_time_limit_seconds),
+        "table4_total_time_limit": float(cfg.experiments.table4.total_time_limit_seconds),
         "resume": True,
+        "schema_version": SCHEMA_VERSION,
     }
 
     if cli_args:
@@ -199,12 +223,19 @@ def _load_settings(cli_args: argparse.Namespace | None = None) -> dict:
             defaults["seeds"] = [int(x.strip()) for x in cli_args.seeds.split(",") if x.strip()]
         if cli_args.total_time is not None:
             defaults["total_time"] = cli_args.total_time
+            defaults["table3_cmsa_time_limit"] = cli_args.total_time
+            defaults["table4_total_time_limit"] = cli_args.total_time
         if cli_args.mip_time is not None:
             defaults["mip_time"] = cli_args.mip_time
+            defaults["table3_restricted_mip_time_limit"] = cli_args.mip_time
+            defaults["table4_restricted_mip_time_limit"] = cli_args.mip_time
         if cli_args.age_limit is not None:
             defaults["age_limit"] = cli_args.age_limit
         if cli_args.exact_time_limit is not None:
             defaults["exact_time_limit"] = cli_args.exact_time_limit
+            defaults["table1_time_limit"] = cli_args.exact_time_limit
+            defaults["table2_time_limit"] = cli_args.exact_time_limit
+            defaults["table3_exact_time_limit"] = cli_args.exact_time_limit
         if cli_args.resume is not None:
             defaults["resume"] = cli_args.resume
 
@@ -223,6 +254,9 @@ def _load_settings(cli_args: argparse.Namespace | None = None) -> dict:
 
     defaults["effective_config_hash"] = compute_config_hash(defaults)
 
+    # Log effective configuration before solver starts
+    print(f"\n[CONFIG] Effective Configuration Loaded: {json.dumps(defaults, indent=2)}")
+
     # Save effective config and environment metadata
     (OUT / "effective_config.json").write_text(json.dumps(defaults, indent=2), encoding="utf-8")
     dump_environment_info(OUT)
@@ -236,8 +270,18 @@ def _find_cached_solution(
     expected_instance_hash: str | None = None,
     expected_backend: str | None = None,
     expected_age_limit: int | None = None,
+    expected_seed: int | None = None,
+    expected_method: str | None = None,
+    inst: FSTSPInstance | None = None,
+    settings: dict | None = None,
 ) -> tuple[FSTSPSolution, Path] | None:
-    """Check if a completed solution for `tag` already exists and satisfies provenance criteria."""
+    """Verify and retrieve cached solution with strict cryptographic, provenance, and validation checks.
+
+    Rejects unverified, legacy, mismatched, or invalid solutions.
+    """
+    if settings is not None and not settings.get("resume", True):
+        return None
+
     search_dirs = [
         OUT / tag,
         OUT / "solutions" / tag,
@@ -254,30 +298,75 @@ def _find_cached_solution(
 
     for d in search_dirs:
         sol_file = d / "solution.json"
-        if sol_file.exists():
-            try:
-                sol = FSTSPSolution.from_json(sol_file)
-                if not sol.feasible:
-                    continue
-                meta = sol.metadata or {}
-                # Provenance: instance hash check
-                if expected_instance_hash and "instance_hash" in meta:
-                    if meta["instance_hash"] != expected_instance_hash:
-                        continue
-                # Provenance: solver backend check
-                if expected_backend and "solver_backend" in meta:
-                    if meta["solver_backend"] != expected_backend:
-                        continue
-                # Provenance: age limit check
-                if expected_age_limit is not None and "age_limit" in meta:
-                    if meta["age_limit"] != expected_age_limit:
-                        continue
-                # Runtime budget threshold
-                if min_budget > 0 and sol.runtime < min_budget * 0.75:
-                    continue
-                return sol, sol_file
-            except Exception:
+        if not sol_file.is_file():
+            continue
+
+        try:
+            sol = FSTSPSolution.from_json(sol_file)
+        except Exception as exc:
+            print(f"[RESUME REJECTED] {tag}: Corrupt solution JSON ({exc})")
+            continue
+
+        if not sol.feasible or sol.objective is None:
+            print(f"[RESUME REJECTED] {tag}: Solution is not feasible or missing objective")
+            continue
+
+        meta = sol.metadata or {}
+
+        # 1. Mandatory verification metadata check
+        mandatory_fields = ["instance_hash", "solver_backend"]
+        if expected_seed is not None:
+            mandatory_fields.append("solver_seed")
+        if expected_method is not None:
+            mandatory_fields.append("method")
+
+        missing = [f for f in mandatory_fields if f not in meta]
+        if missing:
+            print(f"[RESUME REJECTED] {tag}: LEGACY_UNVERIFIED (missing metadata: {missing})")
+            continue
+
+        # 2. Check instance_hash
+        if expected_instance_hash and meta.get("instance_hash") != expected_instance_hash:
+            print(f"[RESUME REJECTED] {tag}: instance_hash mismatch ({meta.get('instance_hash')} != {expected_instance_hash})")
+            continue
+
+        # 3. Check solver_backend
+        if expected_backend and meta.get("solver_backend") != expected_backend:
+            print(f"[RESUME REJECTED] {tag}: solver_backend mismatch ({meta.get('solver_backend')} != {expected_backend})")
+            continue
+
+        # 4. Check solver_seed
+        if expected_seed is not None and int(meta.get("solver_seed", -1)) != int(expected_seed):
+            print(f"[RESUME REJECTED] {tag}: solver_seed mismatch ({meta.get('solver_seed')} != {expected_seed})")
+            continue
+
+        # 5. Check method
+        if expected_method and meta.get("method") != expected_method:
+            print(f"[RESUME REJECTED] {tag}: method mismatch ({meta.get('method')} != {expected_method})")
+            continue
+
+        # 6. Check age_limit (for CMSA)
+        if expected_age_limit is not None and "age_limit" in meta:
+            if int(meta["age_limit"]) != int(expected_age_limit):
+                print(f"[RESUME REJECTED] {tag}: age_limit mismatch ({meta['age_limit']} != {expected_age_limit})")
                 continue
+
+        # 7. Check runtime budget
+        if min_budget > 0:
+            sol_budget = float(meta.get("total_time", sol.runtime))
+            if sol_budget < min_budget * 0.75:
+                print(f"[RESUME REJECTED] {tag}: Time budget insufficient ({sol_budget:.1f}s < {min_budget:.1f}s)")
+                continue
+
+        # 8. Check independent validator
+        if inst is not None:
+            issues = validate_solution(inst, sol)
+            if issues:
+                print(f"[RESUME REJECTED] {tag}: Solution failed independent validation ({'; '.join(issues)})")
+                continue
+
+        return sol, sol_file
+
     return None
 
 
@@ -288,9 +377,17 @@ def _solve_and_record_cmsa(inst: FSTSPInstance, tag: str, settings: dict) -> dic
     threads = settings.get("threads")
     mip_emphasis = settings.get("mip_emphasis")
     age_limit = int(settings.get("age_limit", 2))
+    solver_seed = int(settings.get("solver_seed", 42))
+    mip_time = float(settings.get("mip_time", 15.0))
 
     inst_hash = compute_instance_hash(inst)
-    cfg_hash = compute_config_hash(settings)
+    local_cfg = {
+        **settings,
+        "solver_seed": solver_seed,
+        "method": "cmsa",
+        "schema_version": SCHEMA_VERSION,
+    }
+    cfg_hash = compute_config_hash(local_cfg)
 
     if allow_resume:
         cached = _find_cached_solution(
@@ -299,6 +396,10 @@ def _solve_and_record_cmsa(inst: FSTSPInstance, tag: str, settings: dict) -> dic
             expected_instance_hash=inst_hash,
             expected_backend=solver_backend,
             expected_age_limit=age_limit,
+            expected_seed=solver_seed,
+            expected_method="cmsa",
+            inst=inst,
+            settings=settings,
         )
         if cached is not None:
             sol, sol_path = cached
@@ -340,8 +441,11 @@ def _solve_and_record_cmsa(inst: FSTSPInstance, tag: str, settings: dict) -> dic
                 "config_hash": cfg_hash,
                 "method": "cmsa",
                 "solver_backend": sol.metadata.get("solver_backend", solver_backend),
+                "solver_seed": solver_seed,
                 **solution_metrics(sol),
+                "cmsa_total_time": target_time,
                 "validation": "; ".join(issues),
+                "cmsa_validation": "; ".join(issues),
                 "metadata": sol.metadata,
                 "resumed": True,
             }
@@ -349,17 +453,24 @@ def _solve_and_record_cmsa(inst: FSTSPInstance, tag: str, settings: dict) -> dic
     sol = solve_cmsa(
         inst,
         total_time=target_time,
-        mip_time=float(settings.get("mip_time", 15.0)),
+        mip_time=mip_time,
         age_limit=age_limit,
-        seed=int(settings.get("solver_seed", 42)),
+        seed=solver_seed,
         solver_backend=solver_backend,
         threads=threads,
         mip_emphasis=mip_emphasis,
     )
+    sol.metadata["schema_version"] = SCHEMA_VERSION
     sol.metadata["instance_hash"] = inst_hash
     sol.metadata["config_hash"] = cfg_hash
     sol.metadata["age_limit"] = age_limit
     sol.metadata["solver_backend"] = solver_backend
+    sol.metadata["solver_version"] = "22.11" if solver_backend == "cplex" else "scipy-milp"
+    sol.metadata["solver_seed"] = solver_seed
+    sol.metadata["method"] = "cmsa"
+    sol.metadata["total_time"] = target_time
+    sol.metadata["mip_time"] = mip_time
+    sol.metadata["dataset_id"] = inst.name
 
     issues = validate_solution(inst, sol)
 
@@ -396,9 +507,12 @@ def _solve_and_record_cmsa(inst: FSTSPInstance, tag: str, settings: dict) -> dic
         "instance_hash": inst_hash,
         "config_hash": cfg_hash,
         "method": "cmsa",
-        "solver_backend": sol.metadata.get("solver_backend", solver_backend),
+        "solver_backend": solver_backend,
+        "solver_seed": solver_seed,
         **solution_metrics(sol),
+        "cmsa_total_time": target_time,
         "validation": "; ".join(issues),
+        "cmsa_validation": "; ".join(issues),
         "metadata": sol.metadata,
         "resumed": False,
     }
@@ -429,7 +543,13 @@ def _solve_and_record_exact(inst: FSTSPInstance, tag: str, time_limit: float, se
     mip_emphasis = settings.get("mip_emphasis") if settings else None
 
     inst_hash = compute_instance_hash(inst)
-    cfg_hash = compute_config_hash(settings) if settings else "default"
+    local_cfg = {
+        **(settings or {}),
+        "method": "exact",
+        "exact_time_limit": time_limit,
+        "schema_version": SCHEMA_VERSION,
+    }
+    cfg_hash = compute_config_hash(local_cfg)
 
     sol = solve_stage_model(
         inst,
@@ -439,9 +559,15 @@ def _solve_and_record_exact(inst: FSTSPInstance, tag: str, time_limit: float, se
         threads=threads,
         mip_emphasis=mip_emphasis,
     )
+    sol.metadata["schema_version"] = SCHEMA_VERSION
     sol.metadata["instance_hash"] = inst_hash
     sol.metadata["config_hash"] = cfg_hash
     sol.metadata["solver_backend"] = solver_backend
+    sol.metadata["solver_version"] = "22.11" if solver_backend == "cplex" else "scipy-milp"
+    sol.metadata["solver_seed"] = 42
+    sol.metadata["method"] = "exact"
+    sol.metadata["exact_time_limit"] = time_limit
+    sol.metadata["dataset_id"] = inst.name
 
     issues = validate_solution(inst, sol) if sol.feasible else []
     run_dir = OUT / tag
@@ -554,11 +680,11 @@ def _find_input_files(pattern: str) -> list[Path]:
 
 
 def run_paper_table1(settings: dict) -> tuple[list[dict], pd.DataFrame]:
-    """Reproduce Paper Table 1: maxradius benchmark with Exact 2-index stage model."""
+    """Reproduce Paper Table 1: maxradius benchmark with Exact 2-index stage model (time limit 3600s)."""
     print("\n=======================================================")
     print("REPRODUCING PAPER TABLE 1: maxradius Benchmark Instances")
     print("=======================================================")
-    time_limit = float(settings.get("exact_time_limit", 3600.0))
+    time_limit = float(settings.get("table1_time_limit", 3600.0))
     per_setting = int(settings.get("instances_per_setting", 3))
 
     table1_configs = [
@@ -627,11 +753,11 @@ def run_paper_table1(settings: dict) -> tuple[list[dict], pd.DataFrame]:
 
 
 def run_paper_table2(settings: dict) -> tuple[list[dict], pd.DataFrame]:
-    """Reproduce Paper Table 2: novisit benchmark with Exact 2-index stage model."""
+    """Reproduce Paper Table 2: novisit benchmark with Exact 2-index stage model (time limit 3600s)."""
     print("\n=======================================================")
     print("REPRODUCING PAPER TABLE 2: novisit Benchmark Instances")
     print("=======================================================")
-    time_limit = float(settings.get("exact_time_limit", 3600.0))
+    time_limit = float(settings.get("table2_time_limit", 3600.0))
     per_setting = int(settings.get("instances_per_setting", 3))
 
     table2_novisit_pcts = [10, 20, 30, 40, 50, 60, 70, 80]
@@ -695,14 +821,114 @@ def run_paper_table2(settings: dict) -> tuple[list[dict], pd.DataFrame]:
     return detail_rows, df_summary
 
 
+def evaluate_table3_completion_status(
+    detail_rows: list[dict],
+    expected_sizes: list[int] | None = None,
+    expected_seeds_per_size: int = 10,
+    required_backend: str = "cplex",
+    required_budget: float = 1800.0,
+) -> dict:
+    """Evaluate Table 3 reproduction completeness strictly from actual validated run records.
+
+    Statuses: NOT_STARTED, RUNNING, PARTIAL, COMPLETE, FAILED.
+    """
+    if expected_sizes is None:
+        expected_sizes = [20, 30, 40, 50]
+    total_required = len(expected_sizes) * expected_seeds_per_size  # 40
+
+    if not detail_rows:
+        return {
+            "status": "NOT_STARTED",
+            "completed": 0,
+            "missing": total_required,
+            "total_required": total_required,
+            "is_complete": False,
+            "reasons": ["No experiment rows executed"],
+            "summary_text": f"Completed: 0/{total_required}\nMissing: {total_required}\nProtocol status: NOT_STARTED",
+        }
+
+    seen_keys: set[tuple[int, int]] = set()
+    valid_count = 0
+    reasons = []
+
+    for r in detail_rows:
+        n = r.get("n")
+        seed = r.get("seed")
+        key = (n, seed)
+
+        if n not in expected_sizes:
+            continue
+
+        if key in seen_keys:
+            reasons.append(f"Duplicate instance detected: n={n}, seed={seed}")
+            continue
+        seen_keys.add(key)
+
+        # 1. CMSA feasibility & validation
+        if not r.get("cmsa_feasible"):
+            reasons.append(f"Instance n={n}, seed={seed}: CMSA marked infeasible")
+            continue
+        if r.get("cmsa_objective") is None:
+            reasons.append(f"Instance n={n}, seed={seed}: missing CMSA objective")
+            continue
+        if r.get("cmsa_validation"):
+            reasons.append(f"Instance n={n}, seed={seed}: validation error: {r.get('cmsa_validation')}")
+            continue
+
+        # 2. Instance hash & metadata presence
+        if not r.get("instance_hash"):
+            reasons.append(f"Instance n={n}, seed={seed}: missing instance_hash")
+            continue
+
+        # 3. Solver backend requirement
+        actual_backend = r.get("solver_backend")
+        if actual_backend != required_backend:
+            reasons.append(f"Instance n={n}, seed={seed}: backend '{actual_backend}' != '{required_backend}'")
+            continue
+
+        # 4. Isolation against smoke test results
+        cmsa_rt = float(r.get("cmsa_runtime", 0.0))
+        cmsa_budget = float(r.get("cmsa_total_time", cmsa_rt))
+        if cmsa_budget < required_budget * 0.75:
+            reasons.append(f"Instance n={n}, seed={seed}: budget {cmsa_budget:.1f}s < required {required_budget}s (smoke test isolated)")
+            continue
+
+        valid_count += 1
+
+    missing = total_required - valid_count
+
+    if valid_count == total_required and not reasons:
+        status = "COMPLETE"
+    elif valid_count > 0:
+        status = "PARTIAL"
+    else:
+        status = "FAILED" if reasons else "NOT_STARTED"
+
+    summary_text = (
+        f"Completed: {valid_count}/{total_required}\n"
+        f"Missing: {missing}\n"
+        f"Protocol status: {status}"
+    )
+
+    return {
+        "status": status,
+        "completed": valid_count,
+        "missing": missing,
+        "total_required": total_required,
+        "is_complete": (status == "COMPLETE"),
+        "reasons": reasons,
+        "summary_text": summary_text,
+    }
+
+
 def run_paper_table3(settings: dict) -> tuple[list[dict], pd.DataFrame]:
     """Reproduce Paper Table 3: Comparison of Exact vs CMSA on 40 Newly Generated Instances."""
     print("\n==========================================================================")
     print("REPRODUCING PAPER TABLE 3: Comparison of Exact and CMSA on New Instances")
     print("==========================================================================")
-    exact_limit = float(settings.get("exact_time_limit", 7200.0))
-    cmsa_time = float(settings.get("total_time", 1800.0))
-    mip_time = float(settings.get("mip_time", 15.0))
+    exact_limit = float(settings.get("table3_exact_time_limit", 7200.0))
+    cmsa_time = float(settings.get("table3_cmsa_time_limit", 1800.0))
+    mip_time = float(settings.get("table3_restricted_mip_time_limit", 15.0))
     age_limit = int(settings.get("age_limit", 2))
     solver_backend = str(settings.get("solver_backend", "highs"))
     protocol_label = str(settings.get("protocol_label", "paper_1800s"))
@@ -716,21 +942,6 @@ def run_paper_table3(settings: dict) -> tuple[list[dict], pd.DataFrame]:
         40: {"cplex": None, "csma": 422.87, "gap": None},
         50: {"cplex": None, "csma": 503.86, "gap": None},
     }
-
-    # Strict reproduction classification
-    is_paper_complete = (
-        len(sizes) == 4
-        and set(sizes) == {20, 30, 40, 50}
-        and len(seeds) == 10
-        and cmsa_time >= 1800.0
-        and solver_backend == "cplex"
-    )
-    if is_paper_complete:
-        reproduction_level = "PAPER_PROTOCOL_COMPLETE"
-    elif cmsa_time < 1800.0:
-        reproduction_level = "SMOKE_TEST"
-    else:
-        reproduction_level = "PARTIAL_REPRODUCTION"
 
     detail_rows = []
     summary_rows = []
@@ -747,7 +958,7 @@ def run_paper_table3(settings: dict) -> tuple[list[dict], pd.DataFrame]:
                 launch_time=1.0, recovery_time=1.0, novisit_fraction=0.0
             )
             # 1. Run Exact (if budget allocated and within tractable size).
-            # Paper Table 3: Exact MIP is evaluated up to n=30 within 2 hours.
+            # Paper Table 3: Exact MIP is evaluated up to n=30 within 2 hours (7200s).
             # For n >= 40, exact is intentionally skipped to avoid hours of combinatorial timeout.
             if exact_limit > 0 and n <= 30:
                 tag_exact = f"table3_n{n}_seed{seed}_exact"
@@ -781,6 +992,7 @@ def run_paper_table3(settings: dict) -> tuple[list[dict], pd.DataFrame]:
             # 2. Run CMSA
             tag_cmsa = f"table3_n{n}_seed{seed}_cmsa"
             local_cmsa = {
+                **settings,
                 "total_time": cmsa_time,
                 "mip_time": mip_time,
                 "age_limit": age_limit,
@@ -804,9 +1016,9 @@ def run_paper_table3(settings: dict) -> tuple[list[dict], pd.DataFrame]:
                 "n": n,
                 "seed": seed,
                 "protocol_type": protocol_label,
-                "reproduction_level": reproduction_level,
                 "solver_backend": solver_backend,
                 "instance_dataset": "independent_synthetic_reproduction (40 instances, 10 per size)",
+                "instance_hash": res_cmsa.get("instance_hash"),
                 "exact_feasible": res_exact["feasible"],
                 "exact_objective": res_exact["objective"],
                 "exact_runtime": res_exact["runtime"],
@@ -815,6 +1027,8 @@ def run_paper_table3(settings: dict) -> tuple[list[dict], pd.DataFrame]:
                 "cmsa_feasible": res_cmsa["feasible"],
                 "cmsa_objective": res_cmsa["objective"],
                 "cmsa_runtime": res_cmsa["runtime"],
+                "cmsa_total_time": cmsa_time,
+                "cmsa_validation": res_cmsa.get("validation", ""),
                 "improvement_gap_pct": gap_pct,
             })
             print(f"  n={n} seed={seed}: Exact={res_exact['objective']} (status={res_exact['status']}, {res_exact['runtime']:.1f}s) | "
@@ -833,7 +1047,6 @@ def run_paper_table3(settings: dict) -> tuple[list[dict], pd.DataFrame]:
         summary_rows.append({
             "n": n,
             "Protocol": protocol_label,
-            "Reproduction Level": reproduction_level,
             "Solver": solver_backend,
             "Instances Tested": len(seeds),
             "Exact Solved": len(exact_objs),
@@ -847,6 +1060,25 @@ def run_paper_table3(settings: dict) -> tuple[list[dict], pd.DataFrame]:
         pd.DataFrame(summary_rows).to_csv(OUT / "table3_reproduction.csv", index=False)
         pd.DataFrame(summary_rows).to_csv(OUT / "table3" / "table3_reproduction.csv", index=False)
 
+    # Strictly evaluate post-run completion status
+    audit_status = evaluate_table3_completion_status(
+        detail_rows,
+        expected_sizes=[20, 30, 40, 50],
+        expected_seeds_per_size=10,
+        required_backend=solver_backend,
+        required_budget=cmsa_time,
+    )
+    print("\n" + "=" * 54)
+    print("TABLE 3 REPRODUCTION AUDIT SUMMARY")
+    print(audit_status["summary_text"])
+    print("=" * 54 + "\n")
+
+    for srow in summary_rows:
+        srow["Protocol Status"] = audit_status["status"]
+        srow["Completed Instances"] = audit_status["completed"]
+        srow["Missing Instances"] = audit_status["missing"]
+        srow["Total Required"] = audit_status["total_required"]
+
     df_summary = pd.DataFrame(summary_rows)
     df_details = pd.DataFrame(detail_rows)
 
@@ -854,6 +1086,8 @@ def run_paper_table3(settings: dict) -> tuple[list[dict], pd.DataFrame]:
     df_details.to_csv(OUT / "table3_details.csv", index=False)
     df_summary.to_csv(OUT / "table3" / "table3_reproduction.csv", index=False)
     df_details.to_csv(OUT / "table3" / "table3_details.csv", index=False)
+    (OUT / "table3" / "status.json").write_text(json.dumps(audit_status, indent=2), encoding="utf-8")
+    (OUT / "table3_status.json").write_text(json.dumps(audit_status, indent=2), encoding="utf-8")
 
     print("\n--- Table 3 Reproduction Summary (Comparison with Paper) ---")
     print(df_summary.to_string(index=False))
@@ -874,8 +1108,8 @@ def run_paper_table4(settings: dict) -> tuple[list[dict], pd.DataFrame]:
     if settings.get("protocol_label", "").startswith("smoke"):
         seeds = [1, 2]
 
-    total_time = float(settings.get("total_time", 30.0))
-    mip_time = float(settings.get("mip_time", 8.0))
+    total_time = float(settings.get("table4_total_time_limit", settings.get("total_time", 30.0)))
+    mip_time = float(settings.get("table4_restricted_mip_time_limit", settings.get("mip_time", 15.0)))
     solver_backend = str(settings.get("solver_backend", "highs"))
 
     paper_table4_ref = {
@@ -900,8 +1134,10 @@ def run_paper_table4(settings: dict) -> tuple[list[dict], pd.DataFrame]:
         for age in [2, 5]:
             for seed in seeds:
                 inst = generate_uniform_instance(n=n, seed=seed)
+                inst_hash = compute_instance_hash(inst)
                 tag = f"table4_n{n}_age{age}_seed{seed}"
                 local = {
+                    **settings,
                     "total_time": total_time,
                     "mip_time": mip_time,
                     "age_limit": age,
@@ -914,7 +1150,7 @@ def run_paper_table4(settings: dict) -> tuple[list[dict], pd.DataFrame]:
                 meta = res.get("metadata", {})
                 hist = meta.get("history", [])
 
-                # Collect all iterations for raw iteration tracking
+                # Collect all iterations for raw iteration tracking (Section 5 requirements)
                 for it_idx, it_data in enumerate(hist):
                     it_orig_vars = it_data.get("original_variables", it_data.get("n_variables"))
                     it_orig_cons = it_data.get("original_constraints", it_data.get("n_constraints"))
@@ -927,60 +1163,56 @@ def run_paper_table4(settings: dict) -> tuple[list[dict], pd.DataFrame]:
                     it_p_vars = it_data.get("presolved_variables")
                     it_p_cons = it_data.get("presolved_constraints")
                     it_p_coef = it_data.get("presolved_nonzeros")
+                    it_status = "feasible" if it_data.get("restricted_feasible") else "exhausted"
 
                     iteration_rows.append({
-                        "n": n,
-                        "age": age,
+                        "instance_id": inst.name,
+                        "instance_hash": inst_hash,
                         "seed": seed,
+                        "age_limit": age,
                         "iteration": it_idx + 1,
+                        "solver_backend": solver_backend,
+                        "solver_version": meta.get("solver_version", "22.11" if solver_backend == "cplex" else "scipy-milp"),
                         "original_variables": it_orig_vars,
                         "original_constraints": it_orig_cons,
                         "original_nonzeros": it_orig_coef,
                         "fixed_zero_variables": it_fixed_zero,
                         "fixed_one_variables": it_fixed_one,
                         "free_variables": it_free_vars,
-                        "active_constraints_before_presolve": it_active_cons,
-                        "active_nonzeros_before_presolve": it_active_coef,
                         "presolved_variables": it_p_vars,
                         "presolved_constraints": it_p_cons,
                         "presolved_nonzeros": it_p_coef,
-                        "solver_backend": solver_backend,
+                        "solver_status": it_status,
+                        "solver_runtime": it_data.get("elapsed", 0.0),
                     })
 
-                # Profile last iteration (or instance average across iterations)
+                    # Accumulate for aggregation across all restricted MIP iterations
+                    if it_active_cons is not None: stats_by_age[age]["pre_cons"].append(it_active_cons)
+                    if it_free_vars is not None: stats_by_age[age]["pre_vars"].append(it_free_vars)
+                    if it_active_coef is not None: stats_by_age[age]["pre_coefs"].append(it_active_coef)
+
+                    if it_p_cons is not None: stats_by_age[age]["post_cons"].append(it_p_cons)
+                    if it_p_vars is not None: stats_by_age[age]["post_vars"].append(it_p_vars)
+                    if it_p_coef is not None: stats_by_age[age]["post_coefs"].append(it_p_coef)
+
                 last = hist[-1] if hist else {}
-                n_vars = last.get("original_variables", last.get("n_variables"))
-                n_free_vars = last.get("free_variables", last.get("n_active_variables"))
-                n_cons = last.get("active_constraints_before_presolve") or last.get("n_active_constraints") or last.get("n_constraints")
-                n_coef = last.get("active_nonzeros_before_presolve") or last.get("n_active_nonzeros") or last.get("n_nonzeros")
-
-                p_vars = last.get("presolved_variables")
-                p_cons = last.get("presolved_constraints")
-                p_coef = last.get("presolved_nonzeros")
-
-                if n_cons is not None: stats_by_age[age]["pre_cons"].append(n_cons)
-                if n_free_vars is not None: stats_by_age[age]["pre_vars"].append(n_free_vars)
-                if n_coef is not None: stats_by_age[age]["pre_coefs"].append(n_coef)
-
-                if p_cons is not None: stats_by_age[age]["post_cons"].append(p_cons)
-                if p_vars is not None: stats_by_age[age]["post_vars"].append(p_vars)
-                if p_coef is not None: stats_by_age[age]["post_coefs"].append(p_coef)
-
                 detail_rows.append({
                     "n": n,
                     "age": age,
                     "seed": seed,
-                    "original_variables": n_vars,
-                    "free_variables": n_free_vars,
+                    "instance_id": inst.name,
+                    "instance_hash": inst_hash,
+                    "original_variables": last.get("original_variables", last.get("n_variables")),
+                    "free_variables": last.get("free_variables", last.get("n_active_variables")),
                     "fixed_zero_variables": last.get("fixed_zero_variables", 0),
                     "fixed_one_variables": last.get("fixed_one_variables", 0),
-                    "active_constraints_before_presolve": n_cons,
-                    "active_nonzeros_before_presolve": n_coef,
-                    "presolved_variables": p_vars,
-                    "presolved_constraints": p_cons,
-                    "presolved_nonzeros": p_coef,
+                    "active_constraints_before_presolve": last.get("active_constraints_before_presolve") or last.get("n_active_constraints"),
+                    "active_nonzeros_before_presolve": last.get("active_nonzeros_before_presolve") or last.get("n_active_nonzeros"),
+                    "presolved_variables": last.get("presolved_variables"),
+                    "presolved_constraints": last.get("presolved_constraints"),
+                    "presolved_nonzeros": last.get("presolved_nonzeros"),
                     "solver_backend": solver_backend,
-                    "measurement_method": "CPLEX post-presolve dimensions" if p_vars is not None else "Active pre-presolve dimensions (HiGHS)",
+                    "measurement_method": "CPLEX post-presolve dimensions" if last.get("presolved_variables") is not None else "Active pre-presolve dimensions (HiGHS)",
                 })
 
         p_ref = paper_table4_ref.get(n, {})
@@ -989,7 +1221,7 @@ def run_paper_table4(settings: dict) -> tuple[list[dict], pd.DataFrame]:
         summary_rows.append({
             "n": n,
             "Solver": solver_backend,
-            "Measurement": "CPLEX post-presolve" if has_cplex_presolve else "Pre-presolve active subproblem (HiGHS)",
+            "Measurement Convention": "CPLEX post-presolve mean across iterations" if has_cplex_presolve else "Pre-presolve active subproblem mean across iterations (HiGHS)",
             "Our age=2 Ave.#Cons": int(np.mean(stats_by_age[2]["post_cons" if has_cplex_presolve else "pre_cons"])) if (stats_by_age[2]["post_cons" if has_cplex_presolve else "pre_cons"]) else "-",
             "Our age=2 Ave.#Var": int(np.mean(stats_by_age[2]["post_vars" if has_cplex_presolve else "pre_vars"])) if (stats_by_age[2]["post_vars" if has_cplex_presolve else "pre_vars"]) else "-",
             "Our age=2 Ave.#Coef": int(np.mean(stats_by_age[2]["post_coefs" if has_cplex_presolve else "pre_coefs"])) if (stats_by_age[2]["post_coefs" if has_cplex_presolve else "pre_coefs"]) else "-",

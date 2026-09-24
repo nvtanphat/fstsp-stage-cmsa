@@ -5,7 +5,7 @@
 **A High-Fidelity Python Reimplementation & Reproduction of the 2-Index Stage-based Formulation and CMSA Algorithm for the Flying Sidekick Traveling Salesman Problem (FSTSP)**
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/Tests-65%2F65%20Passed-brightgreen.svg?logo=pytest&logoColor=white)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-118%2F118%20Passed-brightgreen.svg?logo=pytest&logoColor=white)](tests/)
 [![Solver](https://img.shields.io/badge/Solver-HiGHS%20%28SciPy%29-orange.svg)](https://highs.dev/)
 [![Dashboard](https://img.shields.io/badge/UI-Streamlit-red.svg?logo=streamlit&logoColor=white)](app.py)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -87,13 +87,13 @@ pip install -r requirements.txt
 
 ### 2. Run Test Suite
 
-Verify all 65 unit, integration, and regression tests:
+Verify all 118 unit, integration, and regression tests:
 
 ```bash
 pytest -q
 ```
 ```text
-65 passed in 263.44s
+118 passed
 ```
 
 ### 3. Run Experiments Locally

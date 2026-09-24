@@ -15,22 +15,56 @@ solver:
   mip_emphasis: 5  # Feasibility emphasis (CPLEX MIPEmphasis = 5)
   alternative_open_source_backend: highs  # Used when CPLEX license is not available
 
-exact_time_limits:
-  table1_agatz_maxradius_seconds: 3600   # Paper: 1 hour maximum runtime
-  table2_agatz_novisit_seconds: 3600     # Paper: 1 hour maximum runtime
-  table3_cplex_exact_seconds: 7200       # Paper Table 3: CPLEX evaluated after 2 hours
-
-cmsa:
-  age_limit: 2
-  restricted_mip_time_limit_seconds: 15  # tMIP = 15s
-  total_time_limit_seconds: 1800         # Paper Table 3: CSMA evaluated within 30 minutes (1800s)
-  truck_sample_ratio: 0.65
-  exact_tsp_threshold: 60
-
+# Distinct configuration per experiment section:
+# NOTE on Paper Exact Time Limits:
+# - Table 1 & Table 2: 3600s (1 hour) as stated in Section 4's general experiment setup.
+# - Table 3 Exact: 7200s (2 hours), explicitly noted in Section 4's discussion of results
+#   comparing against CPLEX evaluated after 2 hours.
 experiments:
+  protocol_type: "paper_protocol"
+  validate_solutions: true
+  require_raw_results: true
+  figure1_customer_size: 30
+
+  # Backward compatibility aliases
   instances_per_size: 10
   customer_sizes: [20, 30, 40, 50]
   table4_age_limits: [2, 5]
-  require_raw_results: true
-  validate_solutions: true
-  figure1_customer_size: 30
+
+  table1:
+    method: exact
+    time_limit_seconds: 3600.0
+
+  table2:
+    method: exact
+    time_limit_seconds: 3600.0
+
+  table3:
+    exact_time_limit_seconds: 7200.0
+    cmsa_time_limit_seconds: 1800.0
+    restricted_mip_time_limit_seconds: 15.0
+    age_limit: 2
+    truck_sample_ratio: 0.65
+    exact_tsp_threshold: 60
+    instances_per_size: 10
+    customer_sizes: [20, 30, 40, 50]
+
+  table4:
+    age_limits: [2, 5]
+    restricted_mip_time_limit_seconds: 15.0
+    total_time_limit_seconds: 1800.0
+    instances_per_size: 10
+    customer_sizes: [20, 30, 40, 50]
+
+# Global fallback defaults
+exact_time_limits:
+  table1_agatz_maxradius_seconds: 3600.0
+  table2_agatz_novisit_seconds: 3600.0
+  table3_cplex_exact_seconds: 7200.0
+
+cmsa:
+  age_limit: 2
+  restricted_mip_time_limit_seconds: 15.0
+  total_time_limit_seconds: 1800.0
+  truck_sample_ratio: 0.65
+  exact_tsp_threshold: 60

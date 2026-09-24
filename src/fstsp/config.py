@@ -45,6 +45,39 @@ class CMSAConfig:
 
 
 @dataclass
+class Table1ExperimentConfig:
+    method: str = "exact"
+    time_limit_seconds: float = 3600.0
+
+
+@dataclass
+class Table2ExperimentConfig:
+    method: str = "exact"
+    time_limit_seconds: float = 3600.0
+
+
+@dataclass
+class Table3ExperimentConfig:
+    exact_time_limit_seconds: float = 7200.0
+    cmsa_time_limit_seconds: float = 1800.0
+    restricted_mip_time_limit_seconds: float = 15.0
+    age_limit: int = 2
+    truck_sample_ratio: float = 0.65
+    exact_tsp_threshold: int = 60
+    instances_per_size: int = 10
+    customer_sizes: list[int] = field(default_factory=lambda: [20, 30, 40, 50])
+
+
+@dataclass
+class Table4ExperimentConfig:
+    age_limits: list[int] = field(default_factory=lambda: [2, 5])
+    restricted_mip_time_limit_seconds: float = 15.0
+    total_time_limit_seconds: float = 1800.0
+    instances_per_size: int = 10
+    customer_sizes: list[int] = field(default_factory=lambda: [20, 30, 40, 50])
+
+
+@dataclass
 class ExperimentsConfig:
     instances_per_size: int = 10
     customer_sizes: list[int] = field(default_factory=lambda: [20, 30, 40, 50])
@@ -53,6 +86,10 @@ class ExperimentsConfig:
     validate_solutions: bool = True
     figure1_customer_size: int = 30
     protocol_type: str = "paper_protocol"
+    table1: Table1ExperimentConfig = field(default_factory=Table1ExperimentConfig)
+    table2: Table2ExperimentConfig = field(default_factory=Table2ExperimentConfig)
+    table3: Table3ExperimentConfig = field(default_factory=Table3ExperimentConfig)
+    table4: Table4ExperimentConfig = field(default_factory=Table4ExperimentConfig)
 
 
 @dataclass
@@ -147,6 +184,39 @@ def load_config(config_path: str | Path | None = None) -> AppConfig:
     )
 
     exp_data = raw.get("experiments", {})
+    t1_data = exp_data.get("table1", {})
+    table1 = Table1ExperimentConfig(
+        method=str(t1_data.get("method", "exact")),
+        time_limit_seconds=float(t1_data.get("time_limit_seconds", exact_time_limits.table1_agatz_maxradius_seconds)),
+    )
+
+    t2_data = exp_data.get("table2", {})
+    table2 = Table2ExperimentConfig(
+        method=str(t2_data.get("method", "exact")),
+        time_limit_seconds=float(t2_data.get("time_limit_seconds", exact_time_limits.table2_agatz_novisit_seconds)),
+    )
+
+    t3_data = exp_data.get("table3", {})
+    table3 = Table3ExperimentConfig(
+        exact_time_limit_seconds=float(t3_data.get("exact_time_limit_seconds", exact_time_limits.table3_cplex_exact_seconds)),
+        cmsa_time_limit_seconds=float(t3_data.get("cmsa_time_limit_seconds", cmsa.total_time_limit_seconds)),
+        restricted_mip_time_limit_seconds=float(t3_data.get("restricted_mip_time_limit_seconds", cmsa.restricted_mip_time_limit_seconds)),
+        age_limit=int(t3_data.get("age_limit", cmsa.age_limit)),
+        truck_sample_ratio=float(t3_data.get("truck_sample_ratio", cmsa.truck_sample_ratio)),
+        exact_tsp_threshold=int(t3_data.get("exact_tsp_threshold", cmsa.exact_tsp_threshold)),
+        instances_per_size=int(t3_data.get("instances_per_size", exp_data.get("instances_per_size", 10))),
+        customer_sizes=list(t3_data.get("customer_sizes", exp_data.get("customer_sizes", [20, 30, 40, 50]))),
+    )
+
+    t4_data = exp_data.get("table4", {})
+    table4 = Table4ExperimentConfig(
+        age_limits=list(t4_data.get("age_limits", exp_data.get("table4_age_limits", [2, 5]))),
+        restricted_mip_time_limit_seconds=float(t4_data.get("restricted_mip_time_limit_seconds", cmsa.restricted_mip_time_limit_seconds)),
+        total_time_limit_seconds=float(t4_data.get("total_time_limit_seconds", cmsa.total_time_limit_seconds)),
+        instances_per_size=int(t4_data.get("instances_per_size", exp_data.get("instances_per_size", 10))),
+        customer_sizes=list(t4_data.get("customer_sizes", exp_data.get("customer_sizes", [20, 30, 40, 50]))),
+    )
+
     experiments = ExperimentsConfig(
         instances_per_size=int(exp_data.get("instances_per_size", 10)),
         customer_sizes=list(exp_data.get("customer_sizes", [20, 30, 40, 50])),
@@ -155,6 +225,10 @@ def load_config(config_path: str | Path | None = None) -> AppConfig:
         validate_solutions=bool(exp_data.get("validate_solutions", True)),
         figure1_customer_size=int(exp_data.get("figure1_customer_size", 30)),
         protocol_type=str(exp_data.get("protocol_type", "paper_protocol")),
+        table1=table1,
+        table2=table2,
+        table3=table3,
+        table4=table4,
     )
 
     return AppConfig(
