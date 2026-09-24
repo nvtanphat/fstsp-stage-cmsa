@@ -1,0 +1,5 @@
+n,Avg. Exact Obj (Our),Avg. CMSA Obj (Our),Avg. Improvement (Our),Paper CPLEX Obj,Paper CSMA Obj,Paper Improvement
+20,-,295.91,-,300.83,277.18,-7.86%
+30,-,368.06,-,619.49,353.42,-42.95%
+40,-,453.70,-,,422.87,-
+50,-,542.42,-,,503.86,-

@@ -1,0 +1,150 @@
+{
+  "feasible": true,
+  "objective": 336.99319637903506,
+  "truck_route": [
+    0,
+    8,
+    3,
+    10,
+    20,
+    16,
+    5,
+    11,
+    4,
+    6,
+    17,
+    1,
+    12,
+    15,
+    7,
+    21
+  ],
+  "drone_sorties": [
+    {
+      "launch_node": 6,
+      "customer": 2,
+      "recovery_node": 12,
+      "launch_stage": 9,
+      "recovery_stage": 12
+    },
+    {
+      "launch_node": 3,
+      "customer": 9,
+      "recovery_node": 10,
+      "launch_stage": 2,
+      "recovery_stage": 3
+    },
+    {
+      "launch_node": 20,
+      "customer": 13,
+      "recovery_node": 11,
+      "launch_stage": 4,
+      "recovery_stage": 7
+    },
+    {
+      "launch_node": 11,
+      "customer": 14,
+      "recovery_node": 6,
+      "launch_stage": 7,
+      "recovery_stage": 9
+    },
+    {
+      "launch_node": 12,
+      "customer": 18,
+      "recovery_node": 15,
+      "launch_stage": 12,
+      "recovery_stage": 13
+    },
+    {
+      "launch_node": 7,
+      "customer": 19,
+      "recovery_node": 21,
+      "launch_stage": 14,
+      "recovery_stage": 15
+    }
+  ],
+  "runtime": 45.06177626599998,
+  "mip_gap": 0.0,
+  "status": "cmsa_completed",
+  "metadata": {
+    "solver": "scipy-highs",
+    "status_code": 0,
+    "n_variables": 3023,
+    "n_constraints": 90668,
+    "n_nonzeros": 515458,
+    "n_active_variables": 1631,
+    "n_active_constraints": 87940,
+    "n_active_nonzeros": 199905,
+    "n_fixed_zero_variables": 1392,
+    "n_active_components": 94,
+    "big_m": 9517.172695019875,
+    "solver_objective": 336.99319637854103,
+    "requested_mip_rel_gap": 0.02,
+    "proven_optimal": true,
+    "max_bound_violation": 1.1024514634527804e-11,
+    "max_row_violation": 1.1168594937771559e-09,
+    "max_integrality_violation": 8.359757330822504e-12,
+    "vector_validation_tolerance": 2e-05,
+    "certified_objective": 336.99319637903506,
+    "objective_delta_vs_solver": 4.940261533192825e-10,
+    "objective_certification_tolerance": 4.36993196379035e-05,
+    "iterations": 6,
+    "age_limit": 2,
+    "mip_time": 8.0,
+    "total_time_budget": 45.0,
+    "seed": 1,
+    "construct_tsp_time": 5.0,
+    "budget_overrun_seconds": 0.061778718000027766,
+    "history": [
+      {
+        "iteration": 1,
+        "constructed_objective": 351.00281663219425,
+        "restricted_feasible": true,
+        "restricted_objective": 351.00281663219425,
+        "active_components": 35,
+        "elapsed": 8.90945543700002
+      },
+      {
+        "iteration": 2,
+        "constructed_objective": 387.842321094649,
+        "restricted_feasible": true,
+        "restricted_objective": 351.00281663219425,
+        "active_components": 67,
+        "elapsed": 16.90325536199998
+      },
+      {
+        "iteration": 3,
+        "constructed_objective": 338.99319637903506,
+        "restricted_feasible": true,
+        "restricted_objective": 338.99319637903506,
+        "active_components": 92,
+        "elapsed": 24.579439750000006
+      },
+      {
+        "iteration": 4,
+        "constructed_objective": 353.7865586569807,
+        "restricted_feasible": true,
+        "restricted_objective": 338.99319637903506,
+        "active_components": 67,
+        "elapsed": 32.02802561499999
+      },
+      {
+        "iteration": 5,
+        "constructed_objective": 384.794293667165,
+        "restricted_feasible": true,
+        "restricted_objective": 336.99319637903506,
+        "active_components": 94,
+        "elapsed": 40.21158625100003
+      },
+      {
+        "iteration": 6,
+        "constructed_objective": 346.78061127673544,
+        "restricted_feasible": false,
+        "restricted_objective": null,
+        "active_components": 90,
+        "elapsed": 45.061770577999994,
+        "note": "time budget exhausted before restricted MIP"
+      }
+    ]
+  }
+}

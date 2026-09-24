@@ -1,0 +1,64 @@
+{
+  "feasible": true,
+  "objective": 220.80445701150938,
+  "truck_route": [
+    0,
+    1,
+    2,
+    5,
+    3,
+    8,
+    10
+  ],
+  "drone_sorties": [
+    {
+      "launch_node": 2,
+      "customer": 4,
+      "recovery_node": 5,
+      "launch_stage": 2,
+      "recovery_stage": 3
+    },
+    {
+      "launch_node": 8,
+      "customer": 6,
+      "recovery_node": 10,
+      "launch_stage": 5,
+      "recovery_stage": 6
+    },
+    {
+      "launch_node": 0,
+      "customer": 7,
+      "recovery_node": 2,
+      "launch_stage": 0,
+      "recovery_stage": 2
+    },
+    {
+      "launch_node": 5,
+      "customer": 9,
+      "recovery_node": 8,
+      "launch_stage": 3,
+      "recovery_stage": 5
+    }
+  ],
+  "runtime": 25.207696217999967,
+  "mip_gap": 0.4202848671475053,
+  "status": "Time limit reached. (HiGHS Status 13: Time limit reached)",
+  "metadata": {
+    "solver": "scipy-highs",
+    "status_code": 1,
+    "n_variables": 724,
+    "n_constraints": 10725,
+    "n_nonzeros": 37550,
+    "big_m": 5592.937546200119,
+    "solver_objective": 220.80445701150984,
+    "requested_mip_rel_gap": 0.0,
+    "proven_optimal": false,
+    "max_bound_violation": 0.0,
+    "max_row_violation": 0.0,
+    "max_integrality_violation": 0.0,
+    "vector_validation_tolerance": 2e-05,
+    "certified_objective": 220.80445701150938,
+    "objective_delta_vs_solver": -4.547473508864641e-13,
+    "objective_certification_tolerance": 3.2080445701150985e-05
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "feasible": true,
+  "objective": 264.03603679304575,
+  "truck_route": [
+    0,
+    2,
+    1,
+    4,
+    3,
+    7,
+    6,
+    10
+  ],
+  "drone_sorties": [
+    {
+      "launch_node": 1,
+      "customer": 5,
+      "recovery_node": 7,
+      "launch_stage": 2,
+      "recovery_stage": 5
+    },
+    {
+      "launch_node": 2,
+      "customer": 8,
+      "recovery_node": 1,
+      "launch_stage": 1,
+      "recovery_stage": 2
+    },
+    {
+      "launch_node": 7,
+      "customer": 9,
+      "recovery_node": 10,
+      "launch_stage": 5,
+      "recovery_stage": 7
+    }
+  ],
+  "runtime": 4.0423365650001415,
+  "mip_gap": 0.0,
+  "status": "Optimization terminated successfully. (HiGHS Status 7: Optimal)",
+  "metadata": {
+    "solver": "scipy-highs",
+    "status_code": 0,
+    "n_variables": 724,
+    "n_constraints": 10725,
+    "n_nonzeros": 37550,
+    "big_m": 4952.381245421237,
+    "solver_objective": 264.0360367930457,
+    "requested_mip_rel_gap": 0.0,
+    "proven_optimal": true,
+    "max_bound_violation": 0.0,
+    "max_row_violation": 5.684341886080802e-14,
+    "max_integrality_violation": 0.0,
+    "vector_validation_tolerance": 2e-05,
+    "certified_objective": 264.03603679304575,
+    "objective_delta_vs_solver": 5.684341886080802e-14,
+    "objective_certification_tolerance": 3.6403603679304574e-05
+  }
+}

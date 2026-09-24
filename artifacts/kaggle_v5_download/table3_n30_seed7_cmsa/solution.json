@@ -1,0 +1,155 @@
+{
+  "feasible": true,
+  "objective": 576.9122537427901,
+  "truck_route": [
+    0,
+    15,
+    30,
+    9,
+    23,
+    1,
+    22,
+    25,
+    14,
+    3,
+    21,
+    4,
+    24,
+    27,
+    17,
+    11,
+    6,
+    28,
+    19,
+    12,
+    18,
+    31
+  ],
+  "drone_sorties": [
+    {
+      "launch_node": 9,
+      "customer": 2,
+      "recovery_node": 1,
+      "launch_stage": 3,
+      "recovery_stage": 5
+    },
+    {
+      "launch_node": 30,
+      "customer": 5,
+      "recovery_node": 9,
+      "launch_stage": 2,
+      "recovery_stage": 3
+    },
+    {
+      "launch_node": 18,
+      "customer": 7,
+      "recovery_node": 31,
+      "launch_stage": 20,
+      "recovery_stage": 21
+    },
+    {
+      "launch_node": 1,
+      "customer": 8,
+      "recovery_node": 22,
+      "launch_stage": 5,
+      "recovery_stage": 6
+    },
+    {
+      "launch_node": 25,
+      "customer": 10,
+      "recovery_node": 14,
+      "launch_stage": 7,
+      "recovery_stage": 8
+    },
+    {
+      "launch_node": 21,
+      "customer": 13,
+      "recovery_node": 4,
+      "launch_stage": 10,
+      "recovery_stage": 11
+    },
+    {
+      "launch_node": 6,
+      "customer": 16,
+      "recovery_node": 28,
+      "launch_stage": 16,
+      "recovery_stage": 17
+    },
+    {
+      "launch_node": 28,
+      "customer": 20,
+      "recovery_node": 12,
+      "launch_stage": 17,
+      "recovery_stage": 19
+    },
+    {
+      "launch_node": 17,
+      "customer": 26,
+      "recovery_node": 11,
+      "launch_stage": 14,
+      "recovery_stage": 15
+    },
+    {
+      "launch_node": 27,
+      "customer": 29,
+      "recovery_node": 17,
+      "launch_stage": 13,
+      "recovery_stage": 14
+    }
+  ],
+  "runtime": 45.19291079599998,
+  "mip_gap": 0.27936142735253294,
+  "status": "cmsa_completed",
+  "metadata": {
+    "solver": "scipy-highs",
+    "status_code": 1,
+    "n_variables": 5293,
+    "n_constraints": 215347,
+    "n_nonzeros": 1692706,
+    "n_active_variables": 1975,
+    "n_active_constraints": 188067,
+    "n_active_nonzeros": 535585,
+    "n_fixed_zero_variables": 3318,
+    "n_active_components": null,
+    "big_m": 15409.474046836896,
+    "solver_objective": 576.9122537427866,
+    "requested_mip_rel_gap": 0.05,
+    "proven_optimal": false,
+    "max_bound_violation": 0.0,
+    "max_row_violation": 3.637978807091713e-12,
+    "max_integrality_violation": 0.0,
+    "vector_validation_tolerance": 2e-05,
+    "certified_objective": 576.9122537427901,
+    "objective_delta_vs_solver": 3.524291969370097e-12,
+    "objective_certification_tolerance": 6.769122537427901e-05,
+    "truck_sample_ratio": 0.65,
+    "truck_customers": 20,
+    "drone_customers": 10,
+    "construction_method": "stage_based_milp",
+    "iterations": 2,
+    "age_limit": 2,
+    "mip_time": 8.0,
+    "total_time_budget": 45.0,
+    "seed": 7,
+    "construct_tsp_time": 5.0,
+    "budget_overrun_seconds": 0.19291260800014243,
+    "history": [
+      {
+        "iteration": 1,
+        "constructed_objective": 606.8689904174307,
+        "restricted_feasible": true,
+        "restricted_objective": 606.8689904174307,
+        "active_components": 51,
+        "elapsed": 23.60342331700008
+      },
+      {
+        "iteration": 2,
+        "constructed_objective": 576.9122537427901,
+        "restricted_feasible": false,
+        "restricted_objective": null,
+        "active_components": 94,
+        "elapsed": 45.192907174000084
+      }
+    ]
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "feasible": true,
+  "objective": 382.40366175807964,
+  "truck_route": [
+    0,
+    6,
+    7,
+    3,
+    4,
+    8,
+    1,
+    5,
+    2,
+    10
+  ],
+  "drone_sorties": [
+    {
+      "launch_node": 1,
+      "customer": 9,
+      "recovery_node": 5,
+      "launch_stage": 6,
+      "recovery_stage": 7
+    }
+  ],
+  "runtime": 25.26168714299996,
+  "mip_gap": 0.4242625236565352,
+  "status": "Time limit reached. (HiGHS Status 13: Time limit reached)",
+  "metadata": {
+    "solver": "scipy-highs",
+    "status_code": 1,
+    "n_variables": 724,
+    "n_constraints": 10725,
+    "n_nonzeros": 37550,
+    "big_m": 3404.7621062271,
+    "solver_objective": 382.4036617580796,
+    "requested_mip_rel_gap": 0.0,
+    "proven_optimal": false,
+    "max_bound_violation": 2.6645352591003757e-15,
+    "max_row_violation": 2.7284841053187847e-12,
+    "max_integrality_violation": 2.6645352591003757e-15,
+    "vector_validation_tolerance": 2e-05,
+    "certified_objective": 382.40366175807964,
+    "objective_delta_vs_solver": 5.684341886080802e-14,
+    "objective_certification_tolerance": 4.824036617580796e-05
+  }
+}

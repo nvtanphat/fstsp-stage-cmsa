@@ -1,0 +1,143 @@
+{
+  "feasible": true,
+  "objective": 344.020352196455,
+  "truck_route": [
+    0,
+    18,
+    2,
+    12,
+    6,
+    7,
+    17,
+    8,
+    13,
+    10,
+    19,
+    5,
+    11,
+    4,
+    16,
+    1,
+    21
+  ],
+  "drone_sorties": [
+    {
+      "launch_node": 5,
+      "customer": 3,
+      "recovery_node": 21,
+      "launch_stage": 11,
+      "recovery_stage": 16
+    },
+    {
+      "launch_node": 7,
+      "customer": 9,
+      "recovery_node": 8,
+      "launch_stage": 5,
+      "recovery_stage": 7
+    },
+    {
+      "launch_node": 6,
+      "customer": 14,
+      "recovery_node": 7,
+      "launch_stage": 4,
+      "recovery_stage": 5
+    },
+    {
+      "launch_node": 8,
+      "customer": 15,
+      "recovery_node": 5,
+      "launch_stage": 7,
+      "recovery_stage": 11
+    },
+    {
+      "launch_node": 18,
+      "customer": 20,
+      "recovery_node": 6,
+      "launch_stage": 1,
+      "recovery_stage": 4
+    }
+  ],
+  "runtime": 45.24420714500002,
+  "mip_gap": 0.008812992366053495,
+  "status": "cmsa_completed",
+  "metadata": {
+    "solver": "scipy-highs",
+    "status_code": 0,
+    "n_variables": 3023,
+    "n_constraints": 90668,
+    "n_nonzeros": 515458,
+    "n_active_variables": 1628,
+    "n_active_constraints": 87901,
+    "n_active_nonzeros": 200381,
+    "n_fixed_zero_variables": 1395,
+    "n_active_components": 91,
+    "big_m": 11095.534907768764,
+    "solver_objective": 344.0203521964504,
+    "requested_mip_rel_gap": 0.02,
+    "proven_optimal": false,
+    "max_bound_violation": 0.0,
+    "max_row_violation": 0.0,
+    "max_integrality_violation": 0.0,
+    "vector_validation_tolerance": 2e-05,
+    "certified_objective": 344.020352196455,
+    "objective_delta_vs_solver": 4.604316927725449e-12,
+    "objective_certification_tolerance": 4.44020352196455e-05,
+    "iterations": 6,
+    "age_limit": 2,
+    "mip_time": 8.0,
+    "total_time_budget": 45.0,
+    "seed": 6,
+    "construct_tsp_time": 5.0,
+    "budget_overrun_seconds": 0.24420938799994474,
+    "history": [
+      {
+        "iteration": 1,
+        "constructed_objective": 371.81849364000715,
+        "restricted_feasible": true,
+        "restricted_objective": 371.81849364000715,
+        "active_components": 35,
+        "elapsed": 6.540829153999994
+      },
+      {
+        "iteration": 2,
+        "constructed_objective": 397.26390603004603,
+        "restricted_feasible": true,
+        "restricted_objective": 371.81849364000715,
+        "active_components": 64,
+        "elapsed": 13.737822620999964
+      },
+      {
+        "iteration": 3,
+        "constructed_objective": 395.9191231643068,
+        "restricted_feasible": true,
+        "restricted_objective": 344.020352196455,
+        "active_components": 91,
+        "elapsed": 21.30784977799999
+      },
+      {
+        "iteration": 4,
+        "constructed_objective": 376.35581133502313,
+        "restricted_feasible": true,
+        "restricted_objective": 344.020352196455,
+        "active_components": 76,
+        "elapsed": 28.546026279999978
+      },
+      {
+        "iteration": 5,
+        "constructed_objective": 433.2890503048929,
+        "restricted_feasible": true,
+        "restricted_objective": 344.020352196455,
+        "active_components": 94,
+        "elapsed": 38.381094582999935
+      },
+      {
+        "iteration": 6,
+        "constructed_objective": 382.29520905572514,
+        "restricted_feasible": false,
+        "restricted_objective": null,
+        "active_components": 83,
+        "elapsed": 45.24420258500004
+      }
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+[{"stream_name":"stdout","time":5.45397065,"data":"Running mode: paper_tables_3_and_4 with settings: {'mode': 'paper_tables_3_and_4', 'sizes': [6, 10], 'seeds': [1, 2], 'total_time': 45.0, 'mip_time': 8.0, 'age_limit': 2, 'max_instances': 6, 'exact_time_limit': 30.0, 'instances_per_setting': 3, 'table3_sizes': [20, 30, 40, 50], 'table3_seeds': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'resume': True}\n"}
+,{"stream_name":"stdout","time":5.45404285,"data":"\n"}
+,{"stream_name":"stdout","time":5.454048003,"data":"==========================================================================\n"}
+,{"stream_name":"stdout","time":5.454059878,"data":"REPRODUCING PAPER TABLE 3: Comparison of Exact and CMSA on New Instances\n"}
+,{"stream_name":"stdout","time":5.454063518,"data":"==========================================================================\n"}
+,{"stream_name":"stdout","time":5.454066875,"data":"\n"}
+,{"stream_name":"stdout","time":5.454069834,"data":"Evaluating n=20 across 10 seeds...\n"}
+,{"stream_name":"stdout","time":84.019938541,"data":"  n=20 seed=1: Exact=None (32.9s) | CMSA=338.99319637903506 (45.2s) | Gap=None\n"}
+,{"stream_name":"stdout","time":162.34963145,"data":"  n=20 seed=2: Exact=None (32.8s) | CMSA=335.68473939990946 (45.2s) | Gap=None\n"}
+,{"stream_name":"stdout","time":240.511259576,"data":"  n=20 seed=3: Exact=None (32.8s) | CMSA=306.65586853591026 (45.0s) | Gap=None\n"}
+,{"stream_name":"stdout","time":318.711956561,"data":"  n=20 seed=4: Exact=None (32.7s) | CMSA=331.41150033101377 (45.1s) | Gap=None\n"}
+,{"stream_name":"stdout","time":397.16395387,"data":"  n=20 seed=5: Exact=None (33.0s) | CMSA=381.08041402372174 (45.1s) | Gap=None\n"}
+,{"stream_name":"stdout","time":475.339508128,"data":"  n=20 seed=6: Exact=None (32.8s) | CMSA=358.1129037190156 (45.0s) | Gap=None\n"}
+,{"stream_name":"stdout","time":553.542920466,"data":"  n=20 seed=7: Exact=None (32.7s) | CMSA=373.1017282795386 (45.1s) | Gap=None\n"}
+,{"stream_name":"stdout","time":631.812294245,"data":"  n=20 seed=8: Exact=None (32.8s) | CMSA=318.1178120639108 (45.1s) | Gap=None\n"}
+,{"stream_name":"stdout","time":710.2378678,"data":"  n=20 seed=9: Exact=None (32.8s) | CMSA=404.94169076434713 (45.2s) | Gap=None\n"}
+,{"stream_name":"stdout","time":788.426137691,"data":"  n=20 seed=10: Exact=None (32.8s) | CMSA=317.132527342573 (45.0s) | Gap=None\n"}
+,{"stream_name":"stdout","time":788.430557907,"data":"\n"}
+,{"stream_name":"stdout","time":788.430585627,"data":"Evaluating n=30 across 10 seeds...\n"}
+,{"stream_name":"stdout","time":880.111021593,"data":"  n=30 seed=1: Exact=None (46.2s) | CMSA=597.5126134603963 (45.1s) | Gap=None\n"}
+,{"stream_name":"stdout","time":970.064652094,"data":"  n=30 seed=2: Exact=None (44.4s) | CMSA=540.1176942316256 (45.1s) | Gap=None\n"}
+,{"stream_name":"stdout","time":1059.159938941,"data":"  n=30 seed=3: Exact=None (43.5s) | CMSA=623.5903937167809 (45.1s) | Gap=None\n"}
+,{"stream_name":"stdout","time":1148.493322899,"data":"  n=30 seed=4: Exact=None (43.6s) | CMSA=564.3012445054493 (45.3s) | Gap=None\n"}
+,{"stream_name":"stdout","time":1237.527010142,"data":"  n=30 seed=5: Exact=None (43.5s) | CMSA=589.0777132386671 (45.1s) | Gap=None\n"}
+,{"stream_name":"stdout","time":1326.196083033,"data":"  n=30 seed=6: Exact=None (43.1s) | CMSA=605.5357522793221 (45.1s) | Gap=None\n"}
+,{"stream_name":"stdout","time":1415.158793514,"data":"  n=30 seed=7: Exact=None (43.4s) | CMSA=576.9122537427901 (45.2s) | Gap=None\n"}
+,{"stream_name":"stdout","time":1503.574324735,"data":"  n=30 seed=8: Exact=None (42.8s) | CMSA=480.18755299213103 (45.2s) | Gap=None\n"}
+,{"stream_name":"stdout","time":1591.542332843,"data":"  n=30 seed=9: Exact=None (42.4s) | CMSA=696.9889747197633 (45.1s) | Gap=None\n"}
+,{"stream_name":"stdout","time":1679.92818288,"data":"  n=30 seed=10: Exact=None (42.9s) | CMSA=534.8900648762294 (45.1s) | Gap=None\n"}
+,{"stream_name":"stdout","time":1679.932869633,"data":"\n"}
+,{"stream_name":"stdout","time":1679.932893774,"data":"Evaluating n=40 across 10 seeds...\n"}
+,{"stream_name":"stdout","time":1887.517674418,"data":"  n=40 seed=1: Exact=None (161.7s) | CMSA=2311.799012930334 (45.4s) | Gap=None\n"}
+,{"stream_name":"stdout","time":2093.863151817,"data":"  n=40 seed=2: Exact=None (160.5s) | CMSA=1840.4480806029146 (45.4s) | Gap=None\n"}
+,{"stream_name":"stdout","time":2297.922946877,"data":"  n=40 seed=3: Exact=None (158.2s) | CMSA=1973.7671163573807 (45.4s) | Gap=None\n"}
+]
