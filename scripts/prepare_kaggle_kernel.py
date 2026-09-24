@@ -41,6 +41,7 @@ def main() -> None:
     ap.add_argument("--table3-seeds", default="1,2,3,4,5,6,7,8,9,10")
     ap.add_argument("--resume", action="store_true", default=True, help="Resume from existing checkpoints if available")
     ap.add_argument("--no-resume", action="store_false", dest="resume", help="Force recomputation from scratch")
+    ap.add_argument("--code-file", default=None, help="Name of entry point file")
     args = ap.parse_args()
 
     if args.mode in ("agatz", "paper_table1", "paper_table2", "paper_tables_1_and_2", "paper_full") and not args.dataset_source:
@@ -66,6 +67,7 @@ def main() -> None:
         "table3_sizes": _parse_int_list(args.table3_sizes),
         "table3_seeds": _parse_int_list(args.table3_seeds),
         "resume": args.resume,
+        "schema_version": "1.0.0",
     }
     (out / "experiment-settings.json").write_text(
         json.dumps(settings, indent=2), encoding="utf-8"
@@ -113,12 +115,20 @@ def main() -> None:
     )
     original_code = (ROOT / "kaggle" / "run_experiment.py").read_text(encoding="utf-8")
     original_code = original_code.replace("from __future__ import annotations\n", "")
-    (out / "run_experiment.py").write_text(bootstrap + original_code, encoding="utf-8")
+    full_script_content = bootstrap + original_code
+
+    code_file = args.code_file or (
+        "fstsp-stage-cmsa-reimplementation.py"
+        if "fstsp-stage-cmsa-reimplementation" in args.slug
+        else "run_experiment.py"
+    )
+    (out / "run_experiment.py").write_text(full_script_content, encoding="utf-8")
+    (out / "fstsp-stage-cmsa-reimplementation.py").write_text(full_script_content, encoding="utf-8")
 
     metadata = {
         "id": f"{args.username}/{args.slug}",
         "title": "FSTSP Stage CMSA Reimplementation",
-        "code_file": "run_experiment.py",
+        "code_file": code_file,
         "language": "python",
         "kernel_type": "script",
         "is_private": "true" if args.private else "false",
