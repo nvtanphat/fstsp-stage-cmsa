@@ -2,7 +2,12 @@ from pathlib import Path
 import importlib.util
 
 
+import pytest
+
 MODULE = Path(__file__).resolve().parents[2] / "kaggle" / "run_experiment.py"
+if not MODULE.exists():
+    pytest.skip("kaggle/run_experiment.py not present in clean distribution", allow_module_level=True)
+
 spec = importlib.util.spec_from_file_location("kaggle_run_experiment", MODULE)
 mod = importlib.util.module_from_spec(spec)
 assert spec and spec.loader

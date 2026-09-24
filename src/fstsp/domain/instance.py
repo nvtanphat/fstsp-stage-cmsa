@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from functools import cached_property
 import json
 import math
 import numpy as np
@@ -85,17 +86,17 @@ class FSTSPInstance:
     def stages(self) -> list[int]:
         return list(range(0, self.n + 2))
 
-    @property
+    @cached_property
     def node_coords(self) -> np.ndarray:
         return np.vstack([self.depot_coord, self.coords, self.depot_coord])
 
-    @property
+    @cached_property
     def truck_time(self) -> np.ndarray:
         xy = self.node_coords
         d = np.linalg.norm(xy[:, None, :] - xy[None, :, :], axis=2)
         return d / self.truck_speed
 
-    @property
+    @cached_property
     def drone_time(self) -> np.ndarray:
         xy = self.node_coords
         d = np.linalg.norm(xy[:, None, :] - xy[None, :, :], axis=2)

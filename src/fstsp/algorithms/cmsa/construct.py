@@ -34,8 +34,9 @@ def _build_truck_route(
             instance.truck_time,
             instance.S,
             instance.E,
+            deadline=deadline,
         )
-        route = two_opt(route, instance.truck_time)
+        route = two_opt(route, instance.truck_time, deadline=deadline)
     return route
 
 
@@ -128,6 +129,48 @@ def _assign_drone_customers(
     return sorties, failed
 
 
+def _integrate_drone_customers_stage_based(
+    instance: FSTSPInstance,
+    route: list[int],
+    drone_customers: list[int],
+    time_limit: float = 3.0,
+    deadline: float | None = None,
+) -> FSTSPSolution | None:
+    """Integrate remaining customers into truck route via stage-based formulation (Algorithm 1 / Section 3)."""
+    if not drone_customers:
+        return None
+    remaining = float("inf") if deadline is None else max(0.0, deadline - time.perf_counter())
+    local_limit = min(float(time_limit), remaining)
+    if local_limit <= 0.05:
+        return None
+
+    comps = {("x", route[k], route[k + 1]) for k in range(len(route) - 1)}
+    for h in drone_customers:
+        comps.add(("phi", h))
+        for i in route[:-1]:
+            comps.add(("A", h, i))
+        for j in route[1:]:
+            comps.add(("B", h, j))
+
+    from fstsp.formulation.stage_based import solve_stage_model
+
+    try:
+        sol = solve_stage_model(
+            instance,
+            time_limit=local_limit,
+            mip_rel_gap=0.05,
+            active_components=comps,
+            strengthen=True,
+            deadline=deadline,
+        )
+        if sol.feasible and sol.objective is not None and len(sol.drone_sorties) == len(drone_customers):
+            sol.status = "constructed_stage_based"
+            return sol
+    except Exception:
+        pass
+    return None
+
+
 def construct_solution(
     instance: FSTSPInstance,
     rng: np.random.Generator,
@@ -138,13 +181,12 @@ def construct_solution(
 ) -> FSTSPSolution:
     """Construct a certified feasible solution for CMSA component generation.
 
-    Paper-defined idea: sample truck customers, solve a TSP, then integrate the
-    remaining customers as drone customers. The exact authors' construction code
-    is not public, so the assignment policy is an explicit reimplementation choice.
+    Paper method (Section 3): sample a subset of truck customers, solve MTZ TSP,
+    then integrate remaining customers (drone customers) via the 2-index stage-based
+    formulation with fixed stages.
 
-    Robustness rule: whenever a drone customer cannot be placed, it is promoted to
-    truck service and *all* sorties are recomputed against the rebuilt route. This
-    prevents stale launch/recovery stages after route changes.
+    Robustness rule: if the stage-based sub-MIP is infeasible or times out,
+    consecutive-edge heuristic assignment and promotion loop serve as certified fallback.
     """
     if not 0.0 < truck_sample_ratio <= 1.0:
         raise ValueError("truck_sample_ratio must be in (0, 1]")
@@ -172,6 +214,26 @@ def construct_solution(
             # another exact construction subproblem after the CMSA wall-clock budget.
             truck_set.update(customers)
         drone_customers = [h for h in customers if h not in truck_set]
+
+        # Primary Paper Method: Integrate remaining customers via 2-index stage-based formulation
+        if drone_customers:
+            rem_time = float("inf") if deadline is None else max(0.0, deadline - time.perf_counter())
+            sub_limit = min(float(tsp_time_limit), rem_time)
+            stage_sol = _integrate_drone_customers_stage_based(
+                instance, route, drone_customers, time_limit=sub_limit, deadline=deadline
+            )
+            if stage_sol is not None and stage_sol.feasible:
+                stage_sol.metadata.update(
+                    {
+                        "truck_sample_ratio": truck_sample_ratio,
+                        "truck_customers": len(stage_sol.truck_route) - 2 if stage_sol.truck_route else 0,
+                        "drone_customers": len(stage_sol.drone_sorties),
+                        "construction_method": "stage_based_milp",
+                    }
+                )
+                return stage_sol
+
+        # Fallback heuristic: greedy assignment if sub-MIP infeasible or timed out
         sorties, failed = _assign_drone_customers(instance, route, drone_customers)
         if failed:
             truck_set.update(failed)

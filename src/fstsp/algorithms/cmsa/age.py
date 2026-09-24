@@ -15,6 +15,7 @@ class AgeManager:
             self.age[c] = 0
 
     def adapt(self, protected: set[tuple] | None = None) -> None:
+        """Increment age of all active components; disable those reaching age_limit."""
         protected = protected or set()
         for c in list(self.age):
             if self.age[c] < 0 or c in protected:

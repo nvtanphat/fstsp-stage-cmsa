@@ -28,3 +28,18 @@ def test_cmsa_small_budget_does_not_overrun_by_model_build_seconds():
     # Small scheduling/OS jitter is acceptable; multi-second overrun is not.
     assert sol.runtime <= budget + 0.20
     assert sol.metadata["budget_overrun_seconds"] <= 0.20
+
+
+def test_cmsa_tight_deadline_large_instance():
+    inst = generate_uniform_instance(50, seed=42)
+    budget = 0.05
+    sol = solve_cmsa(
+        inst,
+        total_time=budget,
+        mip_time=0.02,
+        construct_tsp_time=0.02,
+        seed=42,
+    )
+    assert sol.feasible
+    assert sol.runtime <= budget + 0.10
+    assert sol.metadata["budget_overrun_seconds"] <= 0.10

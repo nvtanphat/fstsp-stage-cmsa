@@ -112,8 +112,8 @@ def solve_cmsa(
             ):
                 best = mip_sol
 
-        protected = c_comp | mip_comp
-        ages.adapt(protected=protected)
+        # Algorithm 1 Lines 11-18: adapt component ages across all active components.
+        ages.adapt()
         history.append(
             {
                 "iteration": iteration,
