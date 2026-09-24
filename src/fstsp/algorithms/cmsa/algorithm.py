@@ -89,6 +89,10 @@ def solve_cmsa(
                 {
                     "iteration": iteration,
                     "constructed_objective": constructed.objective,
+                    "construction_method": constructed.metadata.get("construction_method", "unknown"),
+                    "construction_tsp_backend": constructed.metadata.get("construction_tsp_backend", solver_backend),
+                    "construction_integration_backend": constructed.metadata.get("construction_integration_backend", solver_backend),
+                    "restricted_mip_backend": solver_backend,
                     "restricted_feasible": False,
                     "restricted_objective": None,
                     "active_components": len(active),
