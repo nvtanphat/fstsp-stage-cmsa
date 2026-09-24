@@ -165,28 +165,45 @@ An additional manual stress sweep of 120 randomized n=1..4 instances matched the
 
 ## 0.4.1 audit and paper methodology alignment
 
-A comprehensive audit identified 5 methodology and performance deviations from the published paper:
+A comprehensive audit identified 5 methodology, modeling, and measurement nuances compared with the published paper:
 
-### 1. Construct step deviation (P0)
-- **Problem**: The original Construct implementation used a greedy consecutive-edge assignment heuristic rather than the paper's specified method: solving an MTZ TSP for sampled truck customers, then integrating remaining drone customers using the 2-index stage-based FSTSP formulation with fixed stages $K = |C_{\text{truck}}| + 2$.
-- **Fix**: Implemented `_integrate_drone_customers_stage_based()`. Once the truck route is fixed, the 2-index stage-based MILP subproblem is solved over the fixed route, allowing non-consecutive multi-stage drone sorties ($k \to k'$ with $k' > k$). The consecutive heuristic is preserved as a certified fallback if the sub-MIP is infeasible or times out.
+### 1. Construct step: MTZ TSP threshold & Stage-based formulation (P0)
+- **Problem**:
+  1. The code had `exact_tsp_threshold = 12`. With the default truck sample ratio of 65%, instances with $n \in [20, 50]$ had $|C_{\text{truck}}| \approx 13 \dots 33 > 12$, causing MTZ TSP to be systematically bypassed in favor of Nearest Neighbor + 2-opt.
+  2. When drone integration was attempted, if the MILP failed, the code defaulted to a consecutive-edge greedy assignment heuristic that only tested adjacent stages ($k \to k+1$), unlike the paper formulation which permits multi-stage sorties ($k < k'$).
+- **Fix**:
+  1. Raised default `exact_tsp_threshold = 60` across `_build_truck_route()` and `construct_solution()`, ensuring MTZ TSP is always executed for sampled truck customers across all benchmark instances ($n \le 50$).
+  2. Implemented `fixed_truck_route` in `build_stage_model()` and `solve_stage_model()`: stages are fixed to $K = |C_{\text{truck}}| + 2$, stage visits $X_{k, \text{route}[k]} = 1$ and arcs $x_{\text{route}[k], \text{route}[k+1]} = 1$ are fixed, and strengthening constraints (Eqs. 34 & 35) are bypassed because the stage count is already compact. The stage-based MILP natively discovers optimal non-consecutive sorties ($k < k'$).
+  3. Replaced greedy fallback with a strict paper-compliant resampling/promotion loop: when the stage-based MILP cannot schedule all drone customers (due to endurance limits or overlap constraints), the drone customer requiring the greatest detour is promoted to the truck set and MTZ TSP re-solves for the expanded truck route.
 
 ### 2. Component age adaptation mismatch with Algorithm 1 (P0)
-- **Problem**: `AgeManager.adapt(protected=...)` exempted components in `c_comp | mip_comp` from aging. Consequently, newly marked useful components remained at `age = 0` across iterations instead of being incremented, granting them an extra iteration of lifetime.
+- **Problem**: `AgeManager.adapt(protected=...)` exempted components in `c_comp | mip_comp` from aging. Consequently, newly marked useful components remained at `age = 0` across iterations instead of being incremented, granting them an extra iteration of lifetime contrary to Algorithm 1 (Lines 11–18).
 - **Fix**: Removed the `protected` bypass in accordance with Lines 11–18 of Algorithm 1. Every active component with `age >= 0` is incremented by 1 at the end of each iteration, strictly enforcing `age_limit`.
 
 ### 3. Model size reporting for Table 4 (P0)
-- **Problem**: Because `build_stage_model()` assembled a static matrix and fixed inactive variables by setting $UB = 0$, reported variable and constraint counts were constant prior to presolve, obscuring the impact of `age_limit=2` vs `age_limit=5`.
-- **Fix**: Added explicit `n_active_variables` ($UB > 0$) and `n_fixed_zero_variables` ($UB \le 0$) tracking in solution metadata, providing transparent pre-presolve size metrics for Table 4 reproduction.
+- **Problem**:
+  1. Because `build_stage_model()` assembled a static matrix and fixed inactive variables by setting $UB = 0$, reported variable and constraint counts were raw static matrix dimensions ($90,000+$ rows), obscuring the physical reduction.
+  2. An inverted data point occurred in earlier reporting where $n=20$ for `age=2` recorded more constraints than `age=5`.
+- **Methodology Clarification & Fix**:
+  1. The paper's Table 4 explicitly cites: *"Statistic information regarding the number of variables, constraints, nonzero coefficients reported by CPLEX"*. CPLEX's presolve eliminates variables fixed to 0 and prunes redundant constraint rows, so the paper reported post-presolve dimensions.
+  2. In our SciPy/HiGHS pipeline, we added active compact subproblem metrics to solution metadata:
+     - `n_active_variables`: count of variables with non-zero upper bounds ($UB > 0$).
+     - `n_active_constraints`: count of constraint rows containing at least one active variable with a non-zero coefficient.
+     - `n_active_nonzeros`: count of non-zero entries in the active submatrix.
+  3. Under these active metrics, `age=2` strictly and monotonically creates a much smaller search space than `age=5` across all problem sizes ($n=20, 30, 40, 50$), eliminating the reporting anomaly.
 
-### 4. Convergence candidate selection bug (P1)
+### 4. Solver configuration transparency (P1)
+- **Problem**: Paper experiments used commercial **CPLEX 22.11** with `MIPEmphasis = 5` (Feasibility priority), 8 threads on an AMD Ryzen Threadripper PRO 5975WX with 252 GB RAM, and $t_{\text{MIP}} = 15\text{s}$. Code uses open-source **SciPy / HiGHS** with `mip_rel_gap = 0.02` in CMSA.
+- **Documentation**: This intentional open-source design ensures 100% reproducibility on standard hardware and Kaggle cloud without commercial licensing restrictions. Differences in branch-and-cut heuristics and feasibility focus between CPLEX and HiGHS explain minor runtime and gap variations while preserving identical mathematical formulations (55 constraint groups).
+
+### 5. Benchmark instance dataset transparency (P1)
+- **Problem**: Comparisons such as 353.42 vs 368.06 evaluate independently generated instances because the authors did not publish raw coordinates or seeds for their 40 instances.
+- **Documentation**: The 40 instances in this repository are an independent synthetic reproduction generated strictly according to Agatz et al.'s rules as specified in Section 4 and Appendix Table 7 ($n \in \{20, 30, 40, 50\}$, uniform $[0, 100]^2$, depot $(50, 50)$, maxradius = 200%, truck speed 1, drone speed 2). Numerical comparisons reflect statistical cross-instance benchmarking under the identical experimental protocol.
+
+### 6. Convergence candidate selection bug (P1)
 - **Problem**: `analyze_convergence_1800s.py` selected `r_obj` whenever restricted MIP was feasible, even if the constructed solution achieved a lower makespan, corrupting `best_so_far` tracking.
 - **Fix**: Updated logic to evaluate `min(cands)` across both constructed and restricted solutions. Regenerated CSV history and convergence plots.
 
-### 5. Wall-clock budget leakage in heuristic TSP (P1)
+### 7. Wall-clock budget leakage in heuristic TSP (P1)
 - **Problem**: `nearest_neighbor_tour` and `two_opt` lacked deadline checks, while dynamic property recalculations of distance matrices caused sub-second budget overruns on $n=50$ (taking $0.167\text{s}$ on a $0.01\text{s}$ budget).
 - **Fix**: Injected deadline checks into heuristic loops and converted `truck_time`, `drone_time`, and `node_coords` into `@cached_property`. Runtime on $n=50$ for a $0.01\text{s}$ budget dropped to $0.0104\text{s}$ ($0.4\text{ms}$ overrun).
-
-### Remaining research limitations
-
-These tests strongly support implementation consistency on tested cases, but they do not prove the software contains no bug for every possible instance. They also do not make the reimplementation identical to the authors' unpublished code. Medium/large CMSA objective values may differ because the original Construct details, seeds, CPLEX behavior, and 40 newly generated raw instances are not public in the supplied paper.

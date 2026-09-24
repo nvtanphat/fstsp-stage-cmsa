@@ -50,6 +50,7 @@ class ModelData:
     constraint: LinearConstraint
     var: VarIndex
     big_m: float
+    stages: list[int] | None = None
 
 
 def _add_row(rows, lbs, ubs, coeffs: Iterable[tuple[int, float]], lb=-np.inf, ub=np.inf):
@@ -63,11 +64,15 @@ def build_stage_model(
     active_components: set[Component] | None = None,
     strengthen: bool = True,
     deadline: float | None = None,
+    num_stages: int | None = None,
+    fixed_truck_route: list[int] | None = None,
 ) -> ModelData:
     """Build the paper's 2-index stage-based MILP as a SciPy/HiGHS model.
 
     Component restrictions affect x, phi, A and B variables and are used by CMSA.
     When `active_components` is None, the full model is built.
+    When `fixed_truck_route` is specified, the truck route and its stages (K = |C_truck| + 2)
+    are fixed, and the MILP solves for the optimal integration of remaining drone customers.
     """
     def check_deadline() -> None:
         if deadline is not None and time.perf_counter() >= deadline:
@@ -76,7 +81,12 @@ def build_stage_model(
     check_deadline()
     V = instance.nodes
     C = instance.customers
-    K = instance.stages
+    if fixed_truck_route is not None:
+        K = list(range(len(fixed_truck_route)))
+    elif num_stages is not None:
+        K = list(range(num_stages))
+    else:
+        K = instance.stages
     S, E = instance.S, instance.E
     tau = instance.truck_time
     tau_d = instance.drone_time
@@ -160,6 +170,40 @@ def build_stage_model(
                     ub[var[("A", h, i)]] = 0.0
                 if ("B", h, i) not in active_components:
                     ub[var[("B", h, i)]] = 0.0
+
+    # Fixed truck route (for Stage-based Construct drone integration, paper Section 3).
+    if fixed_truck_route is not None:
+        for k_idx in K:
+            u_node = fixed_truck_route[k_idx]
+            for i_node in V:
+                if i_node == u_node:
+                    lb[var[("X", k_idx, i_node)]] = 1.0
+                    ub[var[("X", k_idx, i_node)]] = 1.0
+                else:
+                    ub[var[("X", k_idx, i_node)]] = 0.0
+        route_edges = set(zip(fixed_truck_route[:-1], fixed_truck_route[1:]))
+        for i_node in V:
+            for j_node in V:
+                if (i_node, j_node) in route_edges:
+                    lb[var[("x", i_node, j_node)]] = 1.0
+                    ub[var[("x", i_node, j_node)]] = 1.0
+                else:
+                    ub[var[("x", i_node, j_node)]] = 0.0
+        truck_cust_set = set(fixed_truck_route[1:-1])
+        for h in C:
+            if h in truck_cust_set:
+                ub[var[("phi", h)]] = 0.0
+                for i_node in V:
+                    ub[var[("A", h, i_node)]] = 0.0
+                    ub[var[("B", h, i_node)]] = 0.0
+            else:
+                lb[var[("phi", h)]] = 1.0
+                ub[var[("phi", h)]] = 1.0
+                for i_node in V:
+                    if i_node not in fixed_truck_route[:-1]:
+                        ub[var[("A", h, i_node)]] = 0.0
+                    if i_node not in fixed_truck_route[1:]:
+                        ub[var[("B", h, i_node)]] = 0.0
 
     # A conservative Big-M for timing equations.
     max_leg = float(max(np.max(tau), np.max(tau_d), 1.0))
@@ -354,14 +398,15 @@ def build_stage_model(
                 )
 
     if strengthen:
-        # Eq. (34): final depot cannot occur in the first half of the stage horizon.
-        first_forbidden = math.floor((instance.n + 2) / 2)
-        for k in range(1, first_forbidden):
-            _add_row(rows, lbs, ubs, [(var[("X", k, E)], 1)], 0, 0)
-        # Eq. (35): stage of final depot + number of drone customers = K (1-based stage index).
-        coeff = [(var[("X", k, E)], k + 1) for k in K]
-        coeff += [(var[("phi", h)], 1) for h in C]
-        _add_row(rows, lbs, ubs, coeff, len(K), len(K))
+        if fixed_truck_route is None:
+            # Eq. (34): final depot cannot occur in the first half of the stage horizon.
+            first_forbidden = math.floor((instance.n + 2) / 2)
+            for k in range(1, first_forbidden):
+                _add_row(rows, lbs, ubs, [(var[("X", k, E)], 1)], 0, 0)
+            # Eq. (35): stage of final depot + number of drone customers = K (1-based stage index).
+            coeff = [(var[("X", k, E)], k + 1) for k in K]
+            coeff += [(var[("phi", h)], 1) for h in C]
+            _add_row(rows, lbs, ubs, coeff, len(K), len(K))
         # Eqs. (36)-(37): objective lower bounds.
         coeff = [(var[("x", i, j)], float(tau[i, j])) for i in V for j in V]
         coeff += [(var[("A", h, i)], tL) for h in C for i in V]
@@ -401,7 +446,7 @@ def build_stage_model(
         for idx, value in coeffs:
             A_mat[r, idx] += value
     constraint = LinearConstraint(A_mat.tocsr(), np.asarray(lbs), np.asarray(ubs))
-    return ModelData(c, integrality, Bounds(lb, ub), constraint, var, M)
+    return ModelData(c, integrality, Bounds(lb, ub), constraint, var, M, stages=K)
 
 
 def solve_stage_model(
@@ -411,6 +456,8 @@ def solve_stage_model(
     active_components: set[Component] | None = None,
     strengthen: bool = True,
     deadline: float | None = None,
+    num_stages: int | None = None,
+    fixed_truck_route: list[int] | None = None,
 ) -> FSTSPSolution:
     if time_limit <= 0:
         raise ValueError("time_limit must be positive")
@@ -419,7 +466,12 @@ def solve_stage_model(
     started = time.perf_counter()
     try:
         model = build_stage_model(
-            instance, active_components=active_components, strengthen=strengthen, deadline=deadline
+            instance,
+            active_components=active_components,
+            strengthen=strengthen,
+            deadline=deadline,
+            num_stages=num_stages,
+            fixed_truck_route=fixed_truck_route,
         )
     except ModelBuildTimeout:
         return FSTSPSolution(
@@ -511,8 +563,9 @@ def solve_stage_model(
             },
         )
 
+    stages = getattr(model, "stages", None) or instance.stages
     route_by_stage: list[tuple[int, int]] = []
-    for k in instance.stages:
+    for k in stages:
         chosen = [i for i in instance.nodes if xval[model.var[("X", k, i)]] > 0.5]
         if len(chosen) > 1:
             return FSTSPSolution(
@@ -529,8 +582,8 @@ def solve_stage_model(
         if xval[model.var[("phi", h)]] > 0.5:
             launches = [i for i in instance.nodes if xval[model.var[("A", h, i)]] > 0.5]
             recoveries = [i for i in instance.nodes if xval[model.var[("B", h, i)]] > 0.5]
-            launch_stages = [k for k in instance.stages if xval[model.var[("Y", h, k)]] > 0.5]
-            recovery_stages = [k for k in instance.stages if xval[model.var[("W", h, k)]] > 0.5]
+            launch_stages = [k for k in stages if xval[model.var[("Y", h, k)]] > 0.5]
+            recovery_stages = [k for k in stages if xval[model.var[("W", h, k)]] > 0.5]
             if not (len(launches) == len(recoveries) == len(launch_stages) == len(recovery_stages) == 1):
                 return FSTSPSolution(
                     feasible=False, objective=None, runtime=runtime,
@@ -566,6 +619,16 @@ def solve_stage_model(
             status="solver_returned_nonfinite_objective",
             metadata={"solver": "scipy-highs", "status_code": int(result.status)},
         )
+
+    active_var_mask = (model.bounds.ub > model.bounds.lb) & (model.bounds.ub > 1e-9)
+    n_active_variables = int(np.sum(active_var_mask))
+    n_fixed_zero_variables = int(np.sum(~active_var_mask))
+    A_csr = model.constraint.A.tocsr()
+    A_active = A_csr[:, active_var_mask]
+    row_active_nnz = np.diff(A_active.indptr)
+    n_active_constraints = int(np.sum(row_active_nnz > 0))
+    n_active_nonzeros = int(A_active.nnz)
+
     candidate = FSTSPSolution(
         feasible=True,
         objective=solver_objective,
@@ -580,8 +643,10 @@ def solve_stage_model(
             "n_variables": model.var.size,
             "n_constraints": int(model.constraint.A.shape[0]),
             "n_nonzeros": int(getattr(model.constraint.A, "nnz", 0)),
-            "n_active_variables": int(np.sum((model.bounds.ub > model.bounds.lb) & (model.bounds.ub > 1e-9))),
-            "n_fixed_zero_variables": int(np.sum(model.bounds.ub <= 1e-9)),
+            "n_active_variables": n_active_variables,
+            "n_active_constraints": n_active_constraints,
+            "n_active_nonzeros": n_active_nonzeros,
+            "n_fixed_zero_variables": n_fixed_zero_variables,
             "n_active_components": len(active_components) if active_components is not None else None,
             "big_m": model.big_m,
             "solver_objective": solver_objective,

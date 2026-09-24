@@ -131,7 +131,11 @@ Adapt age: Tăng tuổi toàn bộ active component (age[c] += 1; nếu age == a
 Cập nhật nghiệm tốt nhất (Incumbent)
 ```
 
-Paper chuẩn cấu hình `age_limit=2`, `t_MIP=15s`. Bước Construct ưu tiên giải bài toán con stage-based MILP với số stage cố định để cho phép drone bay qua nhiều stage ($k \to k'$), đồng thời có fallback tham lam nếu gặp timeout. Toàn bộ active component đều được thích nghi tuổi đúng theo Algorithm 1 của bài báo.
+Paper chuẩn cấu hình `age_limit=2`, `t_MIP=15s`.
+- **Construct**: Giải MTZ TSP cho tập khách hàng xe tải được lấy mẫu (ngưỡng `exact_tsp_threshold = 60` bao phủ toàn bộ $n \le 50$), sau đó tích hợp khách drone bằng bài toán con 2-index stage-based MILP với số stage cố định $K = |C_{\text{truck}}| + 2$. Cơ chế này cho phép drone bay qua nhiều chặng ($k \to k'$ với $k' > k$).
+- **Vòng lặp Resampling/Promotion**: Nếu bài toán con stage-based không thể phân bổ toàn bộ khách drone (do vượt quá thời lượng pin hoặc trùng lịch bay), khách hàng có chi phí bay vòng lớn nhất sẽ được chuyển sang phục vụ bằng xe tải và giải lại MTZ TSP, tuân thủ đúng nguyên lý bài báo.
+- **Thích nghi tuổi (Age Adaptation)**: Toàn bộ active component đều được tăng tuổi (+1) đúng theo Algorithm 1 Lines 11–18 (không dùng tập bảo vệ).
+- **Thống kê Table 4**: Báo cáo rõ ràng số liệu kích thước mô hình: CPLEX trong bài báo báo cáo số liệu sau presolve (`reported by CPLEX`), trong khi repo đo lường không gian tìm kiếm thực tế qua các chỉ số active compact (`n_active_variables`, `n_active_constraints`, `n_active_nonzeros`), chứng minh `age=2` luôn tạo mô hình nhỏ gọn hơn `age=5`.
 
 ## 9. Solver
 

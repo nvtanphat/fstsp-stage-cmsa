@@ -13,7 +13,7 @@ from fstsp.evaluation.schedule import evaluate_schedule
 def _build_truck_route(
     instance: FSTSPInstance,
     truck_customers: list[int],
-    exact_tsp_threshold: int,
+    exact_tsp_threshold: int = 60,
     tsp_time_limit: float = 5.0,
     deadline: float | None = None,
 ) -> list[int]:
@@ -159,9 +159,9 @@ def _integrate_drone_customers_stage_based(
             instance,
             time_limit=local_limit,
             mip_rel_gap=0.05,
-            active_components=comps,
             strengthen=True,
             deadline=deadline,
+            fixed_truck_route=route,
         )
         if sol.feasible and sol.objective is not None and len(sol.drone_sorties) == len(drone_customers):
             sol.status = "constructed_stage_based"
@@ -175,7 +175,7 @@ def construct_solution(
     instance: FSTSPInstance,
     rng: np.random.Generator,
     truck_sample_ratio: float = 0.65,
-    exact_tsp_threshold: int = 12,
+    exact_tsp_threshold: int = 60,
     tsp_time_limit: float = 5.0,
     deadline: float | None = None,
 ) -> FSTSPSolution:
@@ -218,7 +218,7 @@ def construct_solution(
         # Primary Paper Method: Integrate remaining customers via 2-index stage-based formulation
         if drone_customers:
             rem_time = float("inf") if deadline is None else max(0.0, deadline - time.perf_counter())
-            sub_limit = min(float(tsp_time_limit), rem_time)
+            sub_limit = min(float(tsp_time_limit), rem_time, 2.0)
             stage_sol = _integrate_drone_customers_stage_based(
                 instance, route, drone_customers, time_limit=sub_limit, deadline=deadline
             )
@@ -233,36 +233,23 @@ def construct_solution(
                 )
                 return stage_sol
 
-        # Fallback heuristic: greedy assignment if sub-MIP infeasible or timed out
-        sorties, failed = _assign_drone_customers(instance, route, drone_customers)
-        if failed:
-            truck_set.update(failed)
-            continue
+            # Paper Resampling/Promotion: If stage-based MILP cannot schedule all drone customers
+            # (e.g. flight endurance exceeded or stage overlap conflict), promote the least feasible
+            # drone customer to truck_set and re-run MTZ TSP with the expanded truck route.
+            if deadline is not None and time.perf_counter() >= deadline:
+                truck_set.update(drone_customers)
+                continue
 
-        provisional = FSTSPSolution(
-            feasible=True,
-            objective=0.0,
-            truck_route=route,
-            drone_sorties=sorties,
-            status="constructed",
-            metadata={"objective_type": "certified_schedule"},
-        )
-        evaluation = evaluate_schedule(instance, provisional)
-        if not evaluation.feasible or evaluation.completion_time is None:
-            # Defensive fallback: if our construction policy ever produces a plan
-            # outside the published model, promote all drone customers to truck.
-            truck_set.update(s.customer for s in sorties)
+            # Promote customer requiring largest detour to truck route
+            hardest_drone = max(
+                drone_customers,
+                key=lambda h: min(
+                    float(instance.drone_time[i, h] + instance.drone_time[h, j])
+                    for i in route[:-1] for j in route[1:] if i != j
+                ),
+            )
+            truck_set.add(hardest_drone)
             continue
-
-        provisional.objective = evaluation.completion_time
-        provisional.metadata.update(
-            {
-                "truck_sample_ratio": truck_sample_ratio,
-                "truck_customers": len(route) - 2,
-                "drone_customers": len(sorties),
-            }
-        )
-        return provisional
 
     # This should only be reached under an implementation regression. The all-truck
     # tour is always feasible for the base problem under positive finite travel times.
