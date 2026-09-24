@@ -42,13 +42,15 @@ def main() -> None:
     ap.add_argument("--resume", action="store_true", default=True, help="Resume from existing checkpoints if available")
     ap.add_argument("--no-resume", action="store_false", dest="resume", help="Force recomputation from scratch")
     ap.add_argument("--code-file", default=None, help="Name of entry point file")
+    ap.add_argument("--title", default=None, help="Kernel title")
+    ap.add_argument("--out-dir", default=None, help="Output directory (default: dist/kaggle_kernel)")
     ap.add_argument("--solver-backend", choices=["highs", "cplex"], default="highs", help="Solver backend to use on Kaggle (default: highs)")
     args = ap.parse_args()
 
     if args.mode in ("agatz", "paper_table1", "paper_table2", "paper_tables_1_and_2", "paper_full") and not args.dataset_source:
         raise SystemExit(f"--mode {args.mode} requires at least one --dataset-source owner/dataset-slug")
 
-    out = ROOT / "dist" / "kaggle_kernel"
+    out = Path(args.out_dir) if args.out_dir else (ROOT / "dist" / "kaggle_kernel")
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
@@ -120,17 +122,20 @@ def main() -> None:
     original_code = original_code.replace("from __future__ import annotations\n", "")
     full_script_content = bootstrap + original_code
 
-    code_file = args.code_file or (
-        "fstsp-stage-cmsa-reimplementation.py"
-        if "fstsp-stage-cmsa-reimplementation" in args.slug
-        else "run_experiment.py"
+    code_file = args.code_file or f"{args.slug}.py"
+    title = args.title or (
+        "FSTSP Stage CMSA - Tables 1 and 2"
+        if ("1-2" in args.slug or "tables_1" in args.slug)
+        else "FSTSP Stage CMSA Reimplementation"
     )
     (out / "run_experiment.py").write_text(full_script_content, encoding="utf-8")
-    (out / "fstsp-stage-cmsa-reimplementation.py").write_text(full_script_content, encoding="utf-8")
+    (out / code_file).write_text(full_script_content, encoding="utf-8")
+    if code_file != "fstsp-stage-cmsa-reimplementation.py":
+        (out / "fstsp-stage-cmsa-reimplementation.py").write_text(full_script_content, encoding="utf-8")
 
     metadata = {
         "id": f"{args.username}/{args.slug}",
-        "title": "FSTSP Stage CMSA Reimplementation",
+        "title": title,
         "code_file": code_file,
         "language": "python",
         "kernel_type": "script",
@@ -143,7 +148,7 @@ def main() -> None:
         "model_sources": [],
     }
     (out / "kernel-metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
-    print(out.relative_to(ROOT))
+    print(out)
 
 
 if __name__ == "__main__":

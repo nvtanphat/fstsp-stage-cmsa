@@ -672,11 +672,19 @@ def _run_agatz(settings: dict) -> list[dict]:
 
 
 def _find_input_files(pattern: str) -> list[Path]:
-    root = Path("/kaggle/input")
-    if not root.exists():
-        # Fallback to local data folder if running locally
-        root = Path("data/external/agatz")
-    return sorted(root.rglob(pattern))
+    search_dirs = [
+        Path("/kaggle/input"),
+        Path(tempfile.gettempdir()) / "_fstsp_extracted_bundle" / "data",
+        Path("data/external/agatz"),
+        Path("kaggle_data"),
+        Path("data"),
+    ]
+    for root in search_dirs:
+        if root.exists():
+            matches = sorted(root.rglob(pattern))
+            if matches:
+                return matches
+    return []
 
 
 def run_paper_table1(settings: dict) -> tuple[list[dict], pd.DataFrame]:
