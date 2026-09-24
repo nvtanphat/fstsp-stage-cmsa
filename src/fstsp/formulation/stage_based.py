@@ -65,14 +65,20 @@ def build_stage_model(
     strengthen: bool = True,
     deadline: float | None = None,
     num_stages: int | None = None,
+    fixed_truck_customers: list[int] | set[int] | None = None,
+    fixed_drone_customers: list[int] | set[int] | None = None,
     fixed_truck_route: list[int] | None = None,
 ) -> ModelData:
     """Build the paper's 2-index stage-based MILP as a SciPy/HiGHS model.
 
     Component restrictions affect x, phi, A and B variables and are used by CMSA.
     When `active_components` is None, the full model is built.
-    When `fixed_truck_route` is specified, the truck route and its stages (K = |C_truck| + 2)
-    are fixed, and the MILP solves for the optimal integration of remaining drone customers.
+
+    Four orthogonal fixing mechanisms are supported (paper Section 2 & 3):
+    - `num_stages`: sets stage horizon K = {0, ..., num_stages - 1}.
+    - `fixed_truck_customers`: forces specified customers to truck (phi_h = 0).
+    - `fixed_drone_customers`: forces specified customers to drone (phi_h = 1, X_h^k = 0).
+    - `fixed_truck_route`: fixes the exact sequence of locations visited by truck.
     """
     def check_deadline() -> None:
         if deadline is not None and time.perf_counter() >= deadline:
@@ -171,7 +177,26 @@ def build_stage_model(
                 if ("B", h, i) not in active_components:
                     ub[var[("B", h, i)]] = 0.0
 
-    # Fixed truck route (for Stage-based Construct drone integration, paper Section 3).
+    # 1. Fixed truck customers (customers that must be visited by truck: phi_h = 0)
+    if fixed_truck_customers is not None:
+        for h in fixed_truck_customers:
+            ub[var[("phi", h)]] = 0.0
+            for i_node in V:
+                ub[var[("A", h, i_node)]] = 0.0
+                ub[var[("B", h, i_node)]] = 0.0
+
+    # 2. Fixed drone customers (customers that must be served by drone: phi_h = 1, X_h^k = 0, no truck arcs)
+    if fixed_drone_customers is not None:
+        for h in fixed_drone_customers:
+            lb[var[("phi", h)]] = 1.0
+            ub[var[("phi", h)]] = 1.0
+            for k_idx in K:
+                ub[var[("X", k_idx, h)]] = 0.0
+            for i_node in V:
+                ub[var[("x", i_node, h)]] = 0.0
+                ub[var[("x", h, i_node)]] = 0.0
+
+    # 3. Fixed truck route (exact sequence of locations visited by truck)
     if fixed_truck_route is not None:
         for k_idx in K:
             u_node = fixed_truck_route[k_idx]
@@ -398,15 +423,16 @@ def build_stage_model(
                 )
 
     if strengthen:
-        if fixed_truck_route is None:
-            # Eq. (34): final depot cannot occur in the first half of the stage horizon.
-            first_forbidden = math.floor((instance.n + 2) / 2)
-            for k in range(1, first_forbidden):
-                _add_row(rows, lbs, ubs, [(var[("X", k, E)], 1)], 0, 0)
-            # Eq. (35): stage of final depot + number of drone customers = K (1-based stage index).
-            coeff = [(var[("X", k, E)], k + 1) for k in K]
-            coeff += [(var[("phi", h)], 1) for h in C]
-            _add_row(rows, lbs, ubs, coeff, len(K), len(K))
+        # Eq. (34): final depot cannot occur in the first half of the stage horizon (paper Eq. 34).
+        # We only forbid intermediate stages strictly before the final stage of K.
+        first_forbidden = math.floor((instance.n + 2) / 2)
+        for k in range(1, min(first_forbidden, len(K) - 1)):
+            _add_row(rows, lbs, ubs, [(var[("X", k, E)], 1)], 0, 0)
+        # Eq. (35): stage of final depot + number of drone customers = N + 2 (paper Eq. 35, where K = N + 2).
+        # Constant K on RHS is ALWAYS instance.n + 2 (total original customers + 2 depots).
+        coeff = [(var[("X", k, E)], k + 1) for k in K]
+        coeff += [(var[("phi", h)], 1) for h in C]
+        _add_row(rows, lbs, ubs, coeff, instance.n + 2, instance.n + 2)
         # Eqs. (36)-(37): objective lower bounds.
         coeff = [(var[("x", i, j)], float(tau[i, j])) for i in V for j in V]
         coeff += [(var[("A", h, i)], tL) for h in C for i in V]
@@ -449,6 +475,57 @@ def build_stage_model(
     return ModelData(c, integrality, Bounds(lb, ub), constraint, var, M, stages=K)
 
 
+def extract_model_metrics(model: ModelData, active_components: set[Component] | None = None) -> dict:
+    """Extract separated pre-presolve and structural metrics for Table 4 audit compliance."""
+    lb = np.asarray(model.bounds.lb)
+    ub = np.asarray(model.bounds.ub)
+    nvar = model.var.size
+
+    free_var_mask = (ub > lb + 1e-9)
+    fixed_zero_mask = (np.abs(lb) < 1e-9) & (np.abs(ub) < 1e-9)
+    fixed_one_mask = (np.abs(lb - 1.0) < 1e-9) & (np.abs(ub - 1.0) < 1e-9)
+
+    free_variables = int(np.sum(free_var_mask))
+    fixed_zero_variables = int(np.sum(fixed_zero_mask))
+    fixed_one_variables = int(np.sum(fixed_one_mask))
+
+    A_csr = model.constraint.A.tocsr()
+    A_free = A_csr[:, free_var_mask]
+    row_free_nnz = np.diff(A_free.indptr)
+    active_constraints_before_presolve = int(np.sum(row_free_nnz > 0))
+    active_nonzeros_before_presolve = int(A_free.nnz)
+
+    return {
+        "original_variables": nvar,
+        "original_constraints": int(A_csr.shape[0]),
+        "original_nonzeros": int(getattr(A_csr, "nnz", 0)),
+        "fixed_zero_variables": fixed_zero_variables,
+        "fixed_one_variables": fixed_one_variables,
+        "free_variables": free_variables,
+        "active_constraints_before_presolve": active_constraints_before_presolve,
+        "active_nonzeros_before_presolve": active_nonzeros_before_presolve,
+        "presolved_variables": None,
+        "presolved_constraints": None,
+        "presolved_nonzeros": None,
+        "presolve_metrics_available": False,
+        "presolve_metrics_note": (
+            "HiGHS open-source solver wrapper in scipy.optimize.milp does not expose post-presolve "
+            "dimensions; presolved metrics are null. Active pre-presolve metrics reflect the compact subproblem."
+        ),
+        # Backward-compatibility aliases:
+        "n_variables": nvar,
+        "n_constraints": int(A_csr.shape[0]),
+        "n_nonzeros": int(getattr(A_csr, "nnz", 0)),
+        "n_active_variables": free_variables,
+        "n_active_constraints": active_constraints_before_presolve,
+        "n_active_nonzeros": active_nonzeros_before_presolve,
+        "n_fixed_zero_variables": fixed_zero_variables,
+        "n_fixed_one_variables": fixed_one_variables,
+        "n_free_variables": free_variables,
+        "n_active_components": len(active_components) if active_components is not None else None,
+    }
+
+
 def solve_stage_model(
     instance: FSTSPInstance,
     time_limit: float = 60.0,
@@ -457,12 +534,26 @@ def solve_stage_model(
     strengthen: bool = True,
     deadline: float | None = None,
     num_stages: int | None = None,
+    fixed_truck_customers: list[int] | set[int] | None = None,
+    fixed_drone_customers: list[int] | set[int] | None = None,
     fixed_truck_route: list[int] | None = None,
+    solver_backend: str = "highs",
 ) -> FSTSPSolution:
     if time_limit <= 0:
         raise ValueError("time_limit must be positive")
     if not 0 <= mip_rel_gap < 1:
         raise ValueError("mip_rel_gap must be in [0, 1)")
+
+    if solver_backend == "cplex":
+        try:
+            import cplex  # noqa: F401
+        except ImportError:
+            raise RuntimeError(
+                "CPLEX backend requested per paper protocol, but IBM ILOG CPLEX ('cplex' Python package) "
+                "is not installed in this environment. Use solver_backend='highs' for the open-source "
+                "SciPy/HiGHS alternative solver."
+            )
+
     started = time.perf_counter()
     try:
         model = build_stage_model(
@@ -471,13 +562,15 @@ def solve_stage_model(
             strengthen=strengthen,
             deadline=deadline,
             num_stages=num_stages,
+            fixed_truck_customers=fixed_truck_customers,
+            fixed_drone_customers=fixed_drone_customers,
             fixed_truck_route=fixed_truck_route,
         )
     except ModelBuildTimeout:
         return FSTSPSolution(
             feasible=False, objective=None, runtime=time.perf_counter() - started,
             status="model_build_deadline_exceeded",
-            metadata={"solver": "scipy-highs"},
+            metadata={"solver": "scipy-highs", "solver_backend": solver_backend},
         )
     remaining_limit = float(time_limit)
     if deadline is not None:
@@ -486,7 +579,7 @@ def solve_stage_model(
             return FSTSPSolution(
                 feasible=False, objective=None, runtime=time.perf_counter() - started,
                 status="deadline_exhausted_before_mip",
-                metadata={"solver": "scipy-highs"},
+                metadata={"solver": "scipy-highs", "solver_backend": solver_backend},
             )
     result = milp(
         c=model.c,
@@ -496,18 +589,14 @@ def solve_stage_model(
         options={"time_limit": float(remaining_limit), "mip_rel_gap": float(mip_rel_gap), "presolve": True},
     )
     runtime = time.perf_counter() - started
-    model_stats = {
-        "n_variables": model.var.size,
-        "n_constraints": int(model.constraint.A.shape[0]),
-        "n_nonzeros": int(getattr(model.constraint.A, "nnz", 0)),
-    }
+    model_stats = extract_model_metrics(model, active_components)
     if result.x is None:
         return FSTSPSolution(
             feasible=False,
             objective=None,
             runtime=runtime,
             status=str(result.message),
-            metadata={"solver": "scipy-highs", "status_code": int(result.status), **model_stats},
+            metadata={"solver": "scipy-highs", "solver_backend": solver_backend, "status_code": int(result.status), **model_stats},
         )
     xval = np.asarray(result.x, dtype=float)
     if xval.shape != (model.var.size,) or not np.all(np.isfinite(xval)):
@@ -620,15 +709,6 @@ def solve_stage_model(
             metadata={"solver": "scipy-highs", "status_code": int(result.status)},
         )
 
-    active_var_mask = (model.bounds.ub > model.bounds.lb) & (model.bounds.ub > 1e-9)
-    n_active_variables = int(np.sum(active_var_mask))
-    n_fixed_zero_variables = int(np.sum(~active_var_mask))
-    A_csr = model.constraint.A.tocsr()
-    A_active = A_csr[:, active_var_mask]
-    row_active_nnz = np.diff(A_active.indptr)
-    n_active_constraints = int(np.sum(row_active_nnz > 0))
-    n_active_nonzeros = int(A_active.nnz)
-
     candidate = FSTSPSolution(
         feasible=True,
         objective=solver_objective,
@@ -639,15 +719,9 @@ def solve_stage_model(
         status=str(result.message),
         metadata={
             "solver": "scipy-highs",
+            "solver_backend": solver_backend,
             "status_code": int(result.status),
-            "n_variables": model.var.size,
-            "n_constraints": int(model.constraint.A.shape[0]),
-            "n_nonzeros": int(getattr(model.constraint.A, "nnz", 0)),
-            "n_active_variables": n_active_variables,
-            "n_active_constraints": n_active_constraints,
-            "n_active_nonzeros": n_active_nonzeros,
-            "n_fixed_zero_variables": n_fixed_zero_variables,
-            "n_active_components": len(active_components) if active_components is not None else None,
+            **model_stats,
             "big_m": model.big_m,
             "solver_objective": solver_objective,
             "requested_mip_rel_gap": float(mip_rel_gap),

@@ -1,6 +1,20 @@
 # Changelog
 
-## 0.4.1 — paper methodology alignment & audit hardening
+## 0.4.2 — mathematical formulation proof, construct decoupling & audit hardening
+
+- **Mathematical Proof & Equation (35) Fix**: Corrected constant $K$ in Equation (35) ($\sum_k k X_E^k + \sum_h \phi_h = N + 2$) to strictly reference the total original customer count $N + 2$ (`instance.n + 2`), proving consistency for both full formulation and compact stage subproblems ($K_{\text{sub}} < N + 2$). Enabled Equations (34) and (35) unconditionally under `strengthen=True`.
+- **Orthogonal Decoupling of Construct Parameters**: Refactored `build_stage_model()` and `solve_stage_model()` to cleanly distinguish four independent mathematical choices:
+  - `num_stages`: sets compact stage horizon ($K = |C_{\text{truck}}| + 2$).
+  - `fixed_truck_customers`: fixes $\phi_h = 0$ for truck customers without locking route order.
+  - `fixed_drone_customers`: forces $\phi_h = 1$ and $X_h^k = 0$ for drone customers.
+  - `fixed_truck_route`: locks the exact sequence of truck nodes.
+- **Flexible Route Exploration in Construct**: `_integrate_drone_customers_stage_based` now evaluates flexible truck routes first, allowing the truck to reorder customer stops to better coordinate with the drone, falling back to locked route sequence if the flexible subproblem times out.
+- **MTZ TSP Status Reporting**: Added `TSPResult` dataclass to `src/fstsp/algorithms/tsp/mtz.py`, explicitly distinguishing `OPTIMAL` (proven optimal), `FEASIBLE` (incumbent found), `TIME_LIMIT`, `INFEASIBLE`, and `ERROR`, validating extracted tours against subtours.
+- **Explicit Fallback Tracking**: Every constructed solution strictly records its actual generation method in `solution.status` and `solution.metadata["construction_method"]`: `"stage_based_milp"`, `"heuristic_fallback"`, or `"all_truck_fallback"`, preventing any silent misattribution.
+- **Table 4 Model Sizing Separation & Bug Fix**: Separated model metrics into `original_variables`, `fixed_zero_variables`, `fixed_one_variables`, `free_variables`, `active_constraints_before_presolve`, `active_nonzeros_before_presolve`, and `presolved_variables` (null for HiGHS). Fixed counting bug where fixed-one variables were misclassified as fixed-zero.
+- **Official Paper Protocol Configuration**: Added [`configs/paper_protocol.yaml`](file:///D:/HOCsauvaufngdung/fstsp_audit_v04_clean/configs/paper_protocol.yaml), differentiating Table 1/2 Exact limit (3600s), Table 3 CPLEX Exact limit (7200s), Table 3 CMSA limit (1800s), and $t_{\text{MIP}} = 15\text{s}$.
+- **10 New Audit Regression Tests**: Added [`tests/regression/test_paper_audit_fixes.py`](file:///D:/HOCsauvaufngdung/fstsp_audit_v04_clean/tests/regression/test_paper_audit_fixes.py), bringing total automated test count to **65 / 65 passed**.
+
 
 - **Construct MTZ TSP & Stage-based Integration**: Set default `exact_tsp_threshold = 60` (previously 12), ensuring MTZ TSP is executed for all benchmark sizes up to $n=50$. Formulated exact drone customer integration via the 2-index stage-based MILP with fixed truck route and $K = |C_{\text{truck}}| + 2$ stages, enabling native discovery of non-consecutive multi-stage sorties ($k < k'$).
 - **Resampling/Promotion Loop**: Replaced consecutive greedy assignment with a paper-compliant resampling/promotion loop: unserviceable drone customers are promoted to the truck route and MTZ TSP re-runs for the expanded set.

@@ -1,16 +1,33 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+import time
 import numpy as np
 from scipy.optimize import Bounds, LinearConstraint, milp
 from scipy.sparse import lil_matrix
 
 
-def solve_tsp_mtz(nodes: list[int], distance: np.ndarray, start: int, end: int, time_limit: float = 10.0) -> list[int] | None:
-    """Solve a directed Hamiltonian path start -> customers -> end with MTZ constraints.
+@dataclass
+class TSPResult:
+    """Detailed result of an MTZ TSP solve."""
 
-    `nodes` contains only customer node ids. This is used for small CMSA construction subsets.
-    Returns None if the MILP does not produce a feasible solution within the limit.
-    """
+    route: list[int] | None
+    status: str  # "OPTIMAL", "FEASIBLE", "TIME_LIMIT", "INFEASIBLE", "UNBOUNDED", "ERROR"
+    proven_optimal: bool
+    cost: float | None
+    runtime: float
+    raw_status: int
+    message: str
+
+
+def solve_tsp_mtz_result(
+    nodes: list[int],
+    distance: np.ndarray,
+    start: int,
+    end: int,
+    time_limit: float = 10.0,
+) -> TSPResult:
+    """Solve directed Hamiltonian path start -> customers -> end with MTZ constraints, returning TSPResult."""
     if time_limit <= 0:
         raise ValueError("time_limit must be positive")
     if start == end:
@@ -20,6 +37,7 @@ def solve_tsp_mtz(nodes: list[int], distance: np.ndarray, start: int, end: int, 
         raise ValueError("nodes must not contain duplicates")
     if start in customers or end in customers:
         raise ValueError("customer nodes must exclude start/end")
+
     all_nodes = [start] + customers + [end]
     arcs = [(i, j) for i in all_nodes for j in all_nodes if i != j and i != end and j != start]
     x_index = {a: idx for idx, a in enumerate(arcs)}
@@ -40,42 +58,135 @@ def solve_tsp_mtz(nodes: list[int], distance: np.ndarray, start: int, end: int, 
         ub[u_index[h]] = max(1, len(customers))
 
     rows, lows, highs = [], [], []
+
     def add(coeff, lo=-np.inf, hi=np.inf):
-        rows.append(coeff); lows.append(lo); highs.append(hi)
+        rows.append(coeff)
+        lows.append(lo)
+        highs.append(hi)
 
     # start one outgoing; end one incoming
-    add([(x_index[(i,j)],1) for i,j in arcs if i == start], 1, 1)
-    add([(x_index[(i,j)],1) for i,j in arcs if j == end], 1, 1)
+    add([(x_index[(i, j)], 1) for i, j in arcs if i == start], 1, 1)
+    add([(x_index[(i, j)], 1) for i, j in arcs if j == end], 1, 1)
     for h in customers:
-        add([(x_index[(i,j)],1) for i,j in arcs if j == h], 1, 1)
-        add([(x_index[(i,j)],1) for i,j in arcs if i == h], 1, 1)
+        add([(x_index[(i, j)], 1) for i, j in arcs if j == h], 1, 1)
+        add([(x_index[(i, j)], 1) for i, j in arcs if i == h], 1, 1)
     n = max(1, len(customers))
     for i in customers:
         for j in customers:
-            if i == j or (i,j) not in x_index:
+            if i == j or (i, j) not in x_index:
                 continue
             # u_i - u_j + n*x_ij <= n-1
-            add([(u_index[i],1),(u_index[j],-1),(x_index[(i,j)],n)], -np.inf, n-1)
+            add([(u_index[i], 1), (u_index[j], -1), (x_index[(i, j)], n)], -np.inf, n - 1)
 
     A = lil_matrix((len(rows), nvar), dtype=float)
     for r, coeff in enumerate(rows):
         for idx, value in coeff:
             A[r, idx] += value
-    res = milp(c, integrality=integrality, bounds=Bounds(lb, ub), constraints=LinearConstraint(A.tocsr(), lows, highs), options={"time_limit": time_limit, "presolve": True})
+
+    t0 = time.perf_counter()
+    res = milp(
+        c,
+        integrality=integrality,
+        bounds=Bounds(lb, ub),
+        constraints=LinearConstraint(A.tocsr(), lows, highs),
+        options={"time_limit": time_limit, "presolve": True},
+    )
+    runtime = time.perf_counter() - t0
+
+    raw_status = int(res.status)
+    msg = str(res.message)
+
+    # Map SciPy status codes:
+    # 0: Optimal solution found
+    # 1: Iteration or time limit reached
+    # 2: Infeasible
+    # 3: Unbounded
+    # 4: Numerical / other error
     if res.x is None:
-        return None
+        if raw_status == 1:
+            status = "TIME_LIMIT"
+        elif raw_status == 2:
+            status = "INFEASIBLE"
+        elif raw_status == 3:
+            status = "UNBOUNDED"
+        else:
+            status = "ERROR"
+        return TSPResult(
+            route=None,
+            status=status,
+            proven_optimal=False,
+            cost=None,
+            runtime=runtime,
+            raw_status=raw_status,
+            message=msg,
+        )
+
+    # Extract route from solution vector
     succ = {}
-    for (i,j), idx in x_index.items():
+    for (i, j), idx in x_index.items():
         if res.x[idx] > 0.5:
             succ[i] = j
     route = [start]
     seen = {start}
+    route_valid = True
     while route[-1] != end:
         nxt = succ.get(route[-1])
         if nxt is None or nxt in seen:
-            return None
+            route_valid = False
+            break
         route.append(nxt)
         seen.add(nxt)
         if len(route) > len(all_nodes) + 1:
-            return None
-    return route
+            route_valid = False
+            break
+
+    # Verify all customers are visited
+    if len(route) != len(all_nodes) or route[-1] != end or not route_valid:
+        return TSPResult(
+            route=None,
+            status="ERROR",
+            proven_optimal=False,
+            cost=None,
+            runtime=runtime,
+            raw_status=raw_status,
+            message="Extracted tour is disconnected, subtoured, or incomplete",
+        )
+
+    cost = float(res.fun) if res.fun is not None else sum(distance[u, v] for u, v in zip(route, route[1:]))
+
+    if raw_status == 0:
+        status = "OPTIMAL"
+        proven_optimal = True
+    elif raw_status == 1:
+        # Feasible incumbent found within time limit, but optimality not proven
+        status = "FEASIBLE"
+        proven_optimal = False
+    else:
+        status = "FEASIBLE"
+        proven_optimal = False
+
+    return TSPResult(
+        route=route,
+        status=status,
+        proven_optimal=proven_optimal,
+        cost=cost,
+        runtime=runtime,
+        raw_status=raw_status,
+        message=msg,
+    )
+
+
+def solve_tsp_mtz(
+    nodes: list[int],
+    distance: np.ndarray,
+    start: int,
+    end: int,
+    time_limit: float = 10.0,
+) -> list[int] | None:
+    """Solve directed Hamiltonian path start -> customers -> end with MTZ constraints.
+
+    Returns the tour as a node-id list if a feasible tour was found, or None otherwise.
+    Backward-compatible convenience wrapper around solve_tsp_mtz_result.
+    """
+    result = solve_tsp_mtz_result(nodes, distance, start, end, time_limit=time_limit)
+    return result.route

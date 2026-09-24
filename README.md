@@ -5,7 +5,7 @@
 **A High-Fidelity Python Reimplementation & Reproduction of the 2-Index Stage-based Formulation and CMSA Algorithm for the Flying Sidekick Traveling Salesman Problem (FSTSP)**
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/Tests-55%2F55%20Passed-brightgreen.svg?logo=pytest&logoColor=white)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-65%2F65%20Passed-brightgreen.svg?logo=pytest&logoColor=white)](tests/)
 [![Solver](https://img.shields.io/badge/Solver-HiGHS%20%28SciPy%29-orange.svg)](https://highs.dev/)
 [![Dashboard](https://img.shields.io/badge/UI-Streamlit-red.svg?logo=streamlit&logoColor=white)](app.py)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -31,14 +31,17 @@ This repository provides an **engineering-grade, open-source reimplementation** 
 > *Đức Minh Vũ, et al.*
 
 > [!NOTE]
-> This codebase is an independent reconstruction based entirely on the mathematical formulations and algorithms published in the paper. It does **not** rely on unpublished source code and is fully runnable on local machines using free, open-source solvers (**HiGHS** via `scipy.optimize.milp`).
+> This codebase is an independent reconstruction based entirely on the mathematical formulations and algorithms published in the paper. It does **not** rely on unpublished source code and is fully runnable on local machines using free, open-source solvers (**HiGHS** via `scipy.optimize.milp`), with support for **CPLEX 22.11** when licensed.
 
 ---
 
 ## ✨ Key Features
 
 - 📐 **Full 2-Index Stage-based MILP**: Exact implementation of all equation groups (1)–(55), including Big-M synchronization, battery limits, continuous sortie variables $Z_{kk'}$, and model strengthening inequalities (34)–(40).
-- ⚡ **CMSA Metaheuristic (Construct-Merge-Solve & Adapt)**: Solves large-scale instances up to $N = 50$ customers by decomposing the global search space into compact restricted MIP subproblems.
+- ⚡ **CMSA Metaheuristic (Construct-Merge-Solve & Adapt)**: Solves large-scale instances up to $N = 50$ customers strictly adhering to Algorithm 1 (Lines 11–18 aging without artificial protected set).
+- 🔄 **Decoupled Construct Architecture**: Cleanly separates `num_stages` ($K = |C_{\text{truck}}| + 2$), `fixed_truck_customers`, `fixed_drone_customers`, and `fixed_truck_route`. Evaluates flexible truck orderings before route locking.
+- 🚦 **Transparent Fallback Hierarchy**: Explicitly logs whether solutions were created via `stage_based_milp`, `heuristic_fallback`, or `all_truck_fallback`.
+- 📊 **Table 4 Model Sizing Precision**: Separates `original_variables`, `fixed_zero_variables`, `fixed_one_variables`, `free_variables`, and active matrix metrics.
 - 🛡️ **Zero-Tolerance Schedule Certification**: Independent physical schedule validator (`evaluate_schedule` & `validate_solution`) that independently reconstructs the continuous timeline from discrete assignments, guaranteeing zero battery or timing violations.
 - 🔬 **Brute-Force Mathematical Oracle**: Includes an exhaustive permutation-based oracle verifying exact-MILP optimality down to machine precision ($\Delta < 1.42 \times 10^{-14}$).
 - 🖥️ **Interactive Streamlit Web Dashboard**: Live route visualization, vehicle trajectory tracking, and synchronization Gantt charts.
@@ -84,13 +87,13 @@ pip install -r requirements.txt
 
 ### 2. Run Test Suite
 
-Verify all 55 unit, integration, and regression tests:
+Verify all 65 unit, integration, and regression tests:
 
 ```bash
 pytest -q
 ```
 ```text
-55 passed in 48.52s
+65 passed in 263.44s
 ```
 
 ### 3. Run Experiments Locally
@@ -146,14 +149,20 @@ python scripts/verify_release.py
 ```
 
 The release verifier executes:
-1. Full 55-test suite (`pytest`).
+1. Full 65-test suite (`pytest`).
 2. Fixed exact-vs-brute-force comparisons: **$\Delta = 0.00000000000000$** absolute difference.
 3. 40 randomized stress instances: maximum observed difference **$\le 1.42 \times 10^{-14}$**.
 4. 100 random Construct fuzz tests under low endurance and `novisit` constraints.
 5. CMSA wall-clock deadline compliance with sub-millisecond precision regression tests.
 6. Alignment with paper Algorithm 1 (strict age adaptation and stage-based Construct integration).
+7. Formal Equation (35) mathematical proof and verification with constant $N + 2$.
+8. Orthogonal decoupling of fixed stages, truck customer set, drone customer set, and fixed truck route.
+9. Separated Table 4 model sizing metrics distinguishing fixed-zero from fixed-one variables.
 
-Detailed report: [`artifacts/verification/release_verification.json`](artifacts/verification/release_verification.json).
+Detailed reports:
+- [`docs/REPRODUCTION_PROTOCOL.md`](docs/REPRODUCTION_PROTOCOL.md)
+- [`docs/RELEASE_VERIFICATION.md`](docs/RELEASE_VERIFICATION.md)
+- [`artifacts/verification/release_verification.json`](artifacts/verification/release_verification.json)
 
 ---
 
@@ -163,13 +172,17 @@ Detailed report: [`artifacts/verification/release_verification.json`](artifacts/
 fstsp-stage-cmsa/
 ├── app.py                     # Streamlit Interactive Web Application
 ├── configs/                   # Configuration files
+│   ├── default.yaml           # Local execution defaults
+│   └── paper_protocol.yaml    # Official paper experimental protocol
 ├── data/                      # Benchmark datasets & synthetic instance generators
 │   ├── external/              # Public Agatz geometric benchmark instances
 │   └── paper_40_instances/    # Standard 40 test instances (n=20..50)
 ├── docs/                      # Scientific documentation & audit reports
 │   ├── AUDIT_REPORT.md        # Comprehensive algorithmic audit report
 │   ├── HUONG_DAN_VI.md        # Vietnamese user guide
-│   └── PAPER_MAPPING.md       # Equation-by-equation paper-to-code mapping
+│   ├── PAPER_MAPPING.md       # Equation-by-equation paper-to-code mapping
+│   ├── REPRODUCTION_PROTOCOL.md # Scientific reproduction protocol
+│   └── RELEASE_VERIFICATION.md # Comprehensive verification report
 ├── experiments/               # Experiment execution scripts
 │   ├── run_exact.py           # Exact 2-index MILP runner
 │   ├── run_cmsa.py            # CMSA metaheuristic runner
@@ -187,7 +200,7 @@ fstsp-stage-cmsa/
 │   ├── evaluation/            # Physical schedule reconstruction & brute-force oracle
 │   ├── formulation/           # 2-index stage-based MILP (Eqs 1-55)
 │   └── visualization/         # Route & timeline plotting utilities
-└── tests/                     # 54 Unit, integration, and regression tests
+└── tests/                     # 65 Unit, integration, and regression tests
 ```
 
 ---

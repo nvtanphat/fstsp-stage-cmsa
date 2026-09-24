@@ -118,6 +118,7 @@ def solve_cmsa(
             {
                 "iteration": iteration,
                 "constructed_objective": constructed.objective,
+                "construction_method": constructed.metadata.get("construction_method", "unknown"),
                 "restricted_feasible": mip_sol.feasible,
                 "restricted_objective": mip_sol.objective,
                 "active_components": len(active),

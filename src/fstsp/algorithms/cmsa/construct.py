@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import logging
 import time
 import numpy as np
 
 from fstsp.algorithms.tsp.heuristic import nearest_neighbor_tour, two_opt
-from fstsp.algorithms.tsp.mtz import solve_tsp_mtz
+from fstsp.algorithms.tsp.mtz import solve_tsp_mtz_result
 from fstsp.domain.instance import FSTSPInstance
 from fstsp.domain.solution import DroneSortie, FSTSPSolution
 from fstsp.evaluation.schedule import evaluate_schedule
+
+logger = logging.getLogger(__name__)
 
 
 def _build_truck_route(
@@ -16,18 +19,27 @@ def _build_truck_route(
     exact_tsp_threshold: int = 60,
     tsp_time_limit: float = 5.0,
     deadline: float | None = None,
-) -> list[int]:
+) -> tuple[list[int], str, bool]:
+    """Solve or approximate TSP for truck customers, returning (route, status, proven_optimal)."""
     route = None
+    status = "UNKNOWN"
+    proven_optimal = False
     remaining = float("inf") if deadline is None else max(0.0, deadline - time.perf_counter())
     effective_limit = min(float(tsp_time_limit), remaining)
+
     if len(truck_customers) <= exact_tsp_threshold and effective_limit > 1e-4:
-        route = solve_tsp_mtz(
+        tsp_res = solve_tsp_mtz_result(
             truck_customers,
             instance.truck_time,
             instance.S,
             instance.E,
             time_limit=float(effective_limit),
         )
+        if tsp_res.route is not None:
+            route = tsp_res.route
+            status = tsp_res.status
+            proven_optimal = tsp_res.proven_optimal
+
     if route is None:
         route = nearest_neighbor_tour(
             truck_customers,
@@ -37,7 +49,10 @@ def _build_truck_route(
             deadline=deadline,
         )
         route = two_opt(route, instance.truck_time, deadline=deadline)
-    return route
+        status = "HEURISTIC_2OPT"
+        proven_optimal = False
+
+    return route, status, proven_optimal
 
 
 def _candidate_edges(
@@ -45,44 +60,24 @@ def _candidate_edges(
     route: list[int],
     customer: int,
 ) -> list[tuple[float, int, int, int]]:
-    """Return feasible consecutive-edge insertions for one drone customer.
-
-    Construction deliberately uses consecutive truck stages. The exact restricted
-    MILP solved later by CMSA may still place launch/recovery on non-consecutive
-    stages when active components permit it.
-    """
+    """Return feasible consecutive-edge insertions for one drone customer."""
     candidates: list[tuple[float, int, int, int]] = []
     if not instance.drone_allowed[customer - 1]:
         return candidates
 
     for stage, (i, j) in enumerate(zip(route, route[1:])):
-        # Eq. (49) forbids launch from E and Eq. (50) recovery at S. A route edge
-        # already guarantees j != S and i != E for a normal S->...->E path.
         if i == instance.E or j == instance.S:
             continue
-
-        # Published base model fixes d_S=0 (Eq. 27) while Eq. 30 charges tL,
-        # therefore positive launch handling makes a launch from S infeasible.
         if i == instance.S and instance.launch_time > 1e-12:
             continue
 
-        flight = float(
-            instance.drone_time[i, customer]
-            + instance.drone_time[customer, j]
-        )
+        flight = float(instance.drone_time[i, customer] + instance.drone_time[customer, j])
         truck_leg = float(instance.truck_time[i, j])
-
-        # Eq. (14) and Eq. (33): both the drone flight and the truck's arrival at
-        # the rendezvous must fit the endurance horizon (before recovery handling).
         usable = instance.drone_endurance - instance.recovery_time
         if flight > usable + 1e-9 or truck_leg > usable + 1e-9:
             continue
 
-        operation = (
-            instance.launch_time
-            + max(truck_leg, flight)
-            + instance.recovery_time
-        )
+        operation = instance.launch_time + max(truck_leg, flight) + instance.recovery_time
         delta = operation - truck_leg
         candidates.append((delta, stage, i, j))
     return candidates
@@ -93,12 +88,7 @@ def _assign_drone_customers(
     route: list[int],
     drone_customers: list[int],
 ) -> tuple[list[DroneSortie], list[int]]:
-    """Greedily assign drone customers to distinct consecutive route edges.
-
-    Customers with fewer feasible edges are handled first. Unassigned customers
-    are returned so the caller can promote them to truck service and rebuild the
-    route from scratch. This avoids stale sortie stage/node bugs after route edits.
-    """
+    """Greedily assign drone customers to distinct consecutive route edges (heuristic fallback)."""
     options = {
         h: sorted(_candidate_edges(instance, route, h), key=lambda x: (x[0], x[1]))
         for h in drone_customers
@@ -131,12 +121,18 @@ def _assign_drone_customers(
 
 def _integrate_drone_customers_stage_based(
     instance: FSTSPInstance,
-    route: list[int],
+    truck_customers: list[int],
     drone_customers: list[int],
+    route: list[int] | None = None,
     time_limit: float = 3.0,
     deadline: float | None = None,
 ) -> FSTSPSolution | None:
-    """Integrate remaining customers into truck route via stage-based formulation (Algorithm 1 / Section 3)."""
+    """Integrate remaining customers via 2-index stage-based MILP with fixed number of stages.
+
+    Paper Section 3: Uses fixed number of stages equal to TSP tour length plus 2 (K = |C_truck| + 2).
+    First attempts flexible truck ordering among truck customers so truck can adjust route for drone.
+    If flexible solve times out, falls back to locked truck route sequence from MTZ TSP.
+    """
     if not drone_customers:
         return None
     remaining = float("inf") if deadline is None else max(0.0, deadline - time.perf_counter())
@@ -144,30 +140,55 @@ def _integrate_drone_customers_stage_based(
     if local_limit <= 0.05:
         return None
 
-    comps = {("x", route[k], route[k + 1]) for k in range(len(route) - 1)}
-    for h in drone_customers:
-        comps.add(("phi", h))
-        for i in route[:-1]:
-            comps.add(("A", h, i))
-        for j in route[1:]:
-            comps.add(("B", h, j))
-
     from fstsp.formulation.stage_based import solve_stage_model
 
+    k_stages = len(truck_customers) + 2
+
+    # Attempt 1: Flexible truck ordering with fixed stages K and fixed customer sets
+    # This allows the truck to reorder truck customers to optimally coordinate with drone sorties.
     try:
+        sub_limit_flex = min(local_limit * 0.6, 2.0)
         sol = solve_stage_model(
             instance,
-            time_limit=local_limit,
+            time_limit=sub_limit_flex,
             mip_rel_gap=0.05,
             strengthen=True,
             deadline=deadline,
-            fixed_truck_route=route,
+            num_stages=k_stages,
+            fixed_truck_customers=truck_customers,
+            fixed_drone_customers=drone_customers,
         )
         if sol.feasible and sol.objective is not None and len(sol.drone_sorties) == len(drone_customers):
             sol.status = "constructed_stage_based"
+            sol.metadata["construction_method"] = "stage_based_milp"
+            sol.metadata["stage_integration_mode"] = "flexible_truck_route"
             return sol
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("Flexible stage-based integration exception: %s", exc)
+
+    # Attempt 2: Fixed truck route sequence from MTZ TSP
+    # Fast restricted solve with locked truck route arcs if flexible solve timed out
+    if route is not None:
+        rem = float("inf") if deadline is None else max(0.0, deadline - time.perf_counter())
+        sub_limit_fix = min(local_limit * 0.4, rem, 1.5)
+        if sub_limit_fix > 0.05:
+            try:
+                sol = solve_stage_model(
+                    instance,
+                    time_limit=sub_limit_fix,
+                    mip_rel_gap=0.05,
+                    strengthen=True,
+                    deadline=deadline,
+                    fixed_truck_route=route,
+                )
+                if sol.feasible and sol.objective is not None and len(sol.drone_sorties) == len(drone_customers):
+                    sol.status = "constructed_stage_based"
+                    sol.metadata["construction_method"] = "stage_based_milp"
+                    sol.metadata["stage_integration_mode"] = "fixed_truck_route"
+                    return sol
+            except Exception as exc:
+                logger.debug("Fixed-route stage-based integration exception: %s", exc)
+
     return None
 
 
@@ -183,10 +204,15 @@ def construct_solution(
 
     Paper method (Section 3): sample a subset of truck customers, solve MTZ TSP,
     then integrate remaining customers (drone customers) via the 2-index stage-based
-    formulation with fixed stages.
+    formulation with fixed number of stages equal to TSP tour length plus 2.
 
-    Robustness rule: if the stage-based sub-MIP is infeasible or times out,
-    consecutive-edge heuristic assignment and promotion loop serve as certified fallback.
+    Explicit Fallback Hierarchy:
+    1. stage_based_milp: Solves stage-based MILP with K = |C_truck| + 2 stages.
+    2. heuristic_fallback: Consecutive-edge greedy assignment if MILP fails.
+    3. all_truck_fallback: All-truck tour if no drone assignment succeeds.
+
+    The actual method used is always recorded in solution.status and
+    solution.metadata["construction_method"].
     """
     if not 0.0 < truck_sample_ratio <= 1.0:
         raise ValueError("truck_sample_ratio must be in (0, 1]")
@@ -205,22 +231,28 @@ def construct_solution(
     # At most N iterations: each unsuccessful pass promotes at least one customer.
     for _ in range(instance.n + 1):
         truck_customers = sorted(truck_set)
-        route = _build_truck_route(
-            instance, truck_customers, exact_tsp_threshold,
-            tsp_time_limit=tsp_time_limit, deadline=deadline
+        route, mtz_status, mtz_optimal = _build_truck_route(
+            instance,
+            truck_customers,
+            exact_tsp_threshold,
+            tsp_time_limit=tsp_time_limit,
+            deadline=deadline,
         )
         if deadline is not None and time.perf_counter() >= deadline:
-            # Switch immediately to a cheap all-truck fallback rather than starting
-            # another exact construction subproblem after the CMSA wall-clock budget.
             truck_set.update(customers)
         drone_customers = [h for h in customers if h not in truck_set]
 
         # Primary Paper Method: Integrate remaining customers via 2-index stage-based formulation
         if drone_customers:
             rem_time = float("inf") if deadline is None else max(0.0, deadline - time.perf_counter())
-            sub_limit = min(float(tsp_time_limit), rem_time, 2.0)
+            sub_limit = min(float(tsp_time_limit), rem_time, 2.5)
             stage_sol = _integrate_drone_customers_stage_based(
-                instance, route, drone_customers, time_limit=sub_limit, deadline=deadline
+                instance,
+                truck_customers,
+                drone_customers,
+                route=route,
+                time_limit=sub_limit,
+                deadline=deadline,
             )
             if stage_sol is not None and stage_sol.feasible:
                 stage_sol.metadata.update(
@@ -229,32 +261,58 @@ def construct_solution(
                         "truck_customers": len(stage_sol.truck_route) - 2 if stage_sol.truck_route else 0,
                         "drone_customers": len(stage_sol.drone_sorties),
                         "construction_method": "stage_based_milp",
+                        "mtz_status": mtz_status,
+                        "mtz_proven_optimal": mtz_optimal,
                     }
                 )
                 return stage_sol
 
-            # Paper Resampling/Promotion: If stage-based MILP cannot schedule all drone customers
-            # (e.g. flight endurance exceeded or stage overlap conflict), promote the least feasible
-            # drone customer to truck_set and re-run MTZ TSP with the expanded truck route.
+            # Heuristic assignment check before promotion
+            heur_sorties, heur_failed = _assign_drone_customers(instance, route, drone_customers)
+            if not heur_failed and heur_sorties:
+                heur_cand = FSTSPSolution(
+                    feasible=True,
+                    objective=0.0,
+                    truck_route=route,
+                    drone_sorties=heur_sorties,
+                    status="constructed_heuristic_fallback",
+                    metadata={
+                        "truck_sample_ratio": truck_sample_ratio,
+                        "truck_customers": len(route) - 2,
+                        "drone_customers": len(heur_sorties),
+                        "construction_method": "heuristic_fallback",
+                        "mtz_status": mtz_status,
+                        "mtz_proven_optimal": mtz_optimal,
+                    },
+                )
+                cert = evaluate_schedule(instance, heur_cand)
+                if cert.feasible and cert.completion_time is not None:
+                    heur_cand.objective = cert.completion_time
+                    return heur_cand
+
+            # Paper Resampling/Promotion: If stage-based MILP cannot schedule all drone customers,
+            # promote customer requiring largest detour to truck_set and re-run MTZ TSP.
             if deadline is not None and time.perf_counter() >= deadline:
                 truck_set.update(drone_customers)
                 continue
 
-            # Promote customer requiring largest detour to truck route
             hardest_drone = max(
                 drone_customers,
                 key=lambda h: min(
                     float(instance.drone_time[i, h] + instance.drone_time[h, j])
-                    for i in route[:-1] for j in route[1:] if i != j
+                    for i in route[:-1]
+                    for j in route[1:]
+                    if i != j
                 ),
             )
             truck_set.add(hardest_drone)
             continue
 
-    # This should only be reached under an implementation regression. The all-truck
-    # tour is always feasible for the base problem under positive finite travel times.
-    route = _build_truck_route(
-        instance, customers, exact_tsp_threshold,
+    # All-truck fallback
+    route, mtz_status, mtz_optimal = _build_truck_route(
+        instance,
+        customers,
+        exact_tsp_threshold,
         tsp_time_limit=0.0 if deadline is not None and time.perf_counter() >= deadline else tsp_time_limit,
         deadline=deadline,
     )
@@ -264,7 +322,12 @@ def construct_solution(
         truck_route=route,
         drone_sorties=[],
         status="constructed_all_truck_fallback",
-        metadata={"objective_type": "certified_schedule"},
+        metadata={
+            "construction_method": "all_truck_fallback",
+            "objective_type": "certified_schedule",
+            "mtz_status": mtz_status,
+            "mtz_proven_optimal": mtz_optimal,
+        },
     )
     evaluation = evaluate_schedule(instance, fallback)
     if not evaluation.feasible or evaluation.completion_time is None:
@@ -272,7 +335,7 @@ def construct_solution(
             feasible=False,
             objective=None,
             status="construction_failed_certification",
-            metadata={"issues": evaluation.issues},
+            metadata={"issues": evaluation.issues, "construction_method": "failed"},
         )
     fallback.objective = evaluation.completion_time
     return fallback

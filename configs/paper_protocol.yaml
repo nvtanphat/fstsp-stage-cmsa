@@ -1,0 +1,36 @@
+# Official Paper Experimental Protocol Configuration
+# Reference: 'A 2-index Stage-based Formulation and a Construct-Merge-Solve & Adapt Algorithm
+#            for the Flying Sidekick Traveling Salesman Problem'
+
+problem:
+  trucks: 1
+  drones: 1
+  start_depot: "S"
+  end_depot: "E"
+
+solver:
+  backend: cplex
+  version_reference: "22.11"
+  threads: 8
+  mip_emphasis: 5  # Feasibility emphasis (CPLEX MIPEmphasis = 5)
+  alternative_open_source_backend: highs  # Used when CPLEX license is not available
+
+exact_time_limits:
+  table1_agatz_maxradius_seconds: 3600   # Paper: 1 hour maximum runtime
+  table2_agatz_novisit_seconds: 3600     # Paper: 1 hour maximum runtime
+  table3_cplex_exact_seconds: 7200       # Paper Table 3: CPLEX evaluated after 2 hours
+
+cmsa:
+  age_limit: 2
+  restricted_mip_time_limit_seconds: 15  # tMIP = 15s
+  total_time_limit_seconds: 1800         # Paper Table 3: CSMA evaluated within 30 minutes (1800s)
+  truck_sample_ratio: 0.65
+  exact_tsp_threshold: 60
+
+experiments:
+  instances_per_size: 10
+  customer_sizes: [20, 30, 40, 50]
+  table4_age_limits: [2, 5]
+  require_raw_results: true
+  validate_solutions: true
+  figure1_customer_size: 30

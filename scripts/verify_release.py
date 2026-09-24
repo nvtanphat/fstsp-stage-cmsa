@@ -40,7 +40,7 @@ def run_cmd(cmd: list[str], cwd: Path = ROOT, timeout: int = 120) -> dict:
 def main() -> None:
     report: dict = {"checks": {}}
 
-    pytest_result = run_cmd([sys.executable, "-m", "pytest", "-q"], timeout=180)
+    pytest_result = run_cmd([sys.executable, "-m", "pytest", "-q"], timeout=400)
     report["checks"]["pytest"] = pytest_result
     if pytest_result["returncode"] != 0:
         raise SystemExit("pytest failed")

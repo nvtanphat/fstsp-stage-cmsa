@@ -8,8 +8,8 @@
         "-q"
       ],
       "returncode": 0,
-      "seconds": 82.23740800004452,
-      "stdout_tail": ".......................................................                  [100%]\n55 passed in 80.11s (0:01:20)\n",
+      "seconds": 267.2457285999553,
+      "stdout_tail": ".................................................................        [100%]\n65 passed in 265.19s (0:04:25)\nHighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();\nHighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();\n",
       "stderr_tail": "C:\\Users\\PC\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:208: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n"
     },
     "exact_vs_bruteforce": {
@@ -98,31 +98,31 @@
         {
           "n": 6,
           "seed": 1,
-          "objective": 178.66756517689848,
-          "runtime": 1.011516199912876,
-          "iterations": 7
+          "objective": 189.65920090543588,
+          "runtime": 1.0239489000523463,
+          "iterations": 4
         },
         {
           "n": 8,
           "seed": 2,
-          "objective": 195.60932339684126,
-          "runtime": 1.002045699977316,
-          "iterations": 4
+          "objective": 199.2882615940781,
+          "runtime": 1.002101199934259,
+          "iterations": 3
         },
         {
           "n": 10,
           "seed": 3,
-          "objective": 248.97176015202265,
-          "runtime": 1.0130231999792159,
-          "iterations": 2
+          "objective": 375.8320633953759,
+          "runtime": 1.0119344999548048,
+          "iterations": 1
         }
       ],
       "passed": true
     },
     "cmsa_wallclock_budget": {
       "budget_seconds": 0.35,
-      "runtime_seconds": 0.3577208999777213,
-      "overrun_seconds": 0.007721499982289992,
+      "runtime_seconds": 0.38796179997734725,
+      "overrun_seconds": 0.03796309998724612,
       "passed": true
     },
     "kaggle_bundle_local_smoke": {
@@ -143,7 +143,7 @@
           "0.2"
         ],
         "returncode": 0,
-        "seconds": 0.15428320004139096,
+        "seconds": 0.15867269993759692,
         "stdout_tail": "dist\\kaggle_kernel\n",
         "stderr_tail": ""
       },
@@ -153,7 +153,7 @@
           "run_experiment.py"
         ],
         "returncode": 0,
-        "seconds": 2.8160114000784233,
+        "seconds": 2.7101388999726623,
         "stdout_tail": "Running mode: synthetic with settings: {'mode': 'synthetic', 'sizes': [4], 'seeds': [1], 'total_time': 0.75, 'mip_time': 0.2, 'age_limit': 2, 'max_instances': 6, 'exact_time_limit': 45.0, 'instances_per_setting': 3, 'table3_sizes': [20, 30, 40, 50], 'table3_seeds': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'resume': True}\n\nAll outputs successfully written to artifacts\\kaggle\n",
         "stderr_tail": ""
       },
