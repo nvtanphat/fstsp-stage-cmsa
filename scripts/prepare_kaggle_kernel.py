@@ -42,6 +42,7 @@ def main() -> None:
     ap.add_argument("--resume", action="store_true", default=True, help="Resume from existing checkpoints if available")
     ap.add_argument("--no-resume", action="store_false", dest="resume", help="Force recomputation from scratch")
     ap.add_argument("--code-file", default=None, help="Name of entry point file")
+    ap.add_argument("--solver-backend", choices=["highs", "cplex"], default="highs", help="Solver backend to use on Kaggle (default: highs)")
     args = ap.parse_args()
 
     if args.mode in ("agatz", "paper_table1", "paper_table2", "paper_tables_1_and_2", "paper_full") and not args.dataset_source:
@@ -56,6 +57,7 @@ def main() -> None:
         shutil.copytree(ROOT / "configs", out / "configs")
     settings = {
         "mode": args.mode,
+        "solver_backend": args.solver_backend,
         "sizes": _parse_int_list(args.sizes),
         "seeds": _parse_int_list(args.seeds),
         "total_time": args.total_time,
@@ -99,6 +101,7 @@ def main() -> None:
         "import tempfile\n"
         "import zipfile\n"
         "from pathlib import Path\n\n"
+        f"os.environ['FSTSP_SOLVER_BACKEND'] = {repr(args.solver_backend)}\n"
         f"_EMBEDDED_SETTINGS = {repr(settings)}\n"
         f'_FSTSP_ZIP_B64 = "{fstsp_bundle_b64}"\n\n'
         "try:\n"
