@@ -163,6 +163,30 @@ The v0.4 verifier completed:
 
 An additional manual stress sweep of 120 randomized n=1..4 instances matched the independent brute-force optimum in every case, with maximum objective difference about `1.42e-14`.
 
+## 0.4.1 audit and paper methodology alignment
+
+A comprehensive audit identified 5 methodology and performance deviations from the published paper:
+
+### 1. Construct step deviation (P0)
+- **Problem**: The original Construct implementation used a greedy consecutive-edge assignment heuristic rather than the paper's specified method: solving an MTZ TSP for sampled truck customers, then integrating remaining drone customers using the 2-index stage-based FSTSP formulation with fixed stages $K = |C_{\text{truck}}| + 2$.
+- **Fix**: Implemented `_integrate_drone_customers_stage_based()`. Once the truck route is fixed, the 2-index stage-based MILP subproblem is solved over the fixed route, allowing non-consecutive multi-stage drone sorties ($k \to k'$ with $k' > k$). The consecutive heuristic is preserved as a certified fallback if the sub-MIP is infeasible or times out.
+
+### 2. Component age adaptation mismatch with Algorithm 1 (P0)
+- **Problem**: `AgeManager.adapt(protected=...)` exempted components in `c_comp | mip_comp` from aging. Consequently, newly marked useful components remained at `age = 0` across iterations instead of being incremented, granting them an extra iteration of lifetime.
+- **Fix**: Removed the `protected` bypass in accordance with Lines 11–18 of Algorithm 1. Every active component with `age >= 0` is incremented by 1 at the end of each iteration, strictly enforcing `age_limit`.
+
+### 3. Model size reporting for Table 4 (P0)
+- **Problem**: Because `build_stage_model()` assembled a static matrix and fixed inactive variables by setting $UB = 0$, reported variable and constraint counts were constant prior to presolve, obscuring the impact of `age_limit=2` vs `age_limit=5`.
+- **Fix**: Added explicit `n_active_variables` ($UB > 0$) and `n_fixed_zero_variables` ($UB \le 0$) tracking in solution metadata, providing transparent pre-presolve size metrics for Table 4 reproduction.
+
+### 4. Convergence candidate selection bug (P1)
+- **Problem**: `analyze_convergence_1800s.py` selected `r_obj` whenever restricted MIP was feasible, even if the constructed solution achieved a lower makespan, corrupting `best_so_far` tracking.
+- **Fix**: Updated logic to evaluate `min(cands)` across both constructed and restricted solutions. Regenerated CSV history and convergence plots.
+
+### 5. Wall-clock budget leakage in heuristic TSP (P1)
+- **Problem**: `nearest_neighbor_tour` and `two_opt` lacked deadline checks, while dynamic property recalculations of distance matrices caused sub-second budget overruns on $n=50$ (taking $0.167\text{s}$ on a $0.01\text{s}$ budget).
+- **Fix**: Injected deadline checks into heuristic loops and converted `truck_time`, `drone_time`, and `node_coords` into `@cached_property`. Runtime on $n=50$ for a $0.01\text{s}$ budget dropped to $0.0104\text{s}$ ($0.4\text{ms}$ overrun).
+
 ### Remaining research limitations
 
 These tests strongly support implementation consistency on tested cases, but they do not prove the software contains no bug for every possible instance. They also do not make the reimplementation identical to the authors' unpublished code. Medium/large CMSA objective values may differ because the original Construct details, seeds, CPLEX behavior, and 40 newly generated raw instances are not public in the supplied paper.

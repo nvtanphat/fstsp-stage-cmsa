@@ -111,27 +111,27 @@ artifacts/verification/release_verification.json
 
 Đây là bước nên chạy trước khi commit/tag release hoặc trước khi lấy số liệu báo cáo.
 
-## 8. CMSA
+## 8. CMSA (Thuật toán theo đúng Paper)
 
 ```text
-Construct
+Construct (MTZ TSP + Stage-based MILP với K = |C_truck| + 2 chặng cố định)
    ↓
-Truck route + drone sorties đã certify
+Truck route + drone sorties tối ưu đã certify
    ↓
-Trích component x, phi, A, B
+Trích component x, phi, A, B (age[c] = 0)
    ↓
-Merge + age
+Fix component inactive (UB = 0)
    ↓
-Fix component inactive
+Restricted stage-based MILP (HiGHS, t_MIP = 15s)
    ↓
-Restricted stage-based MILP
+Reset age các component thuộc s_MIP (age[c] = 0)
    ↓
-Adapt age
+Adapt age: Tăng tuổi toàn bộ active component (age[c] += 1; nếu age == age_limit thì age = -1)
    ↓
-Giữ best certified solution
+Cập nhật nghiệm tốt nhất (Incumbent)
 ```
 
-Paper dùng `age_limit=2`, `t_MIP=15s`. Repo cho đổi tham số để smoke test.
+Paper chuẩn cấu hình `age_limit=2`, `t_MIP=15s`. Bước Construct ưu tiên giải bài toán con stage-based MILP với số stage cố định để cho phép drone bay qua nhiều stage ($k \to k'$), đồng thời có fallback tham lam nếu gặp timeout. Toàn bộ active component đều được thích nghi tuổi đúng theo Algorithm 1 của bài báo.
 
 ## 9. Solver
 

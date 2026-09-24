@@ -35,22 +35,20 @@ Implementation: `src/fstsp/algorithms/cmsa/`.
 
 | Paper step | Code |
 |---|---|
-| Construct | `construct.py::construct_solution` |
+| Construct (MTZ TSP + Stage-based MILP) | `construct.py::construct_solution`, `_integrate_drone_customers_stage_based` |
 | Define components x, phi, A, B | `stage_based.py::solution_components` |
 | Merge components | `age.py::AgeManager.mark_useful` |
 | Fix inactive variables | `build_stage_model(... active_components=...)` |
 | Solve restricted MIP | `solve_stage_model` |
-| Adapt ages | `AgeManager.adapt` |
+| Adapt ages (Algorithm 1 Lines 11–18) | `age.py::AgeManager.adapt` (without protected set) |
 | Track best solution | `algorithm.py::solve_cmsa` |
 
-## Known reconstruction choices
+## Construction and reconstruction details
 
-The paper says the Construct step solves TSP on a sampled truck-customer subset with an MTZ formulation, but does not publish the sampling policy and integration code. This repo:
+The paper specifies that the Construct step solves TSP on a sampled truck-customer subset using the MTZ formulation, and then integrates remaining customers using the 2-index stage-based formulation with a fixed number of stages equal to the TSP tour length plus two. This repo implements:
 
-- samples a deterministic fraction under a seeded RNG;
-- uses MTZ MILP for small subsets;
-- falls back to Nearest Neighbor + 2-opt for larger subsets;
-- assigns at most one drone customer to each consecutive truck edge during construction;
-- lets the restricted stage-MILP perform the exact optimization under the active component pool.
-
-These are explicitly reimplementation choices, not claims about unpublished author code.
+- Samples a fraction of truck customers (default 65%) with seeded RNG;
+- Solves MTZ TSP for the truck tour on $\{S\} \cup C_{\text{truck}} \cup \{E\}$;
+- Integrates remaining drone customers via the restricted 2-index stage-based MILP subproblem (`_integrate_drone_customers_stage_based`), allowing multi-stage sorties ($k \to k'$ with $k' > k$);
+- Retains a consecutive-edge greedy assignment and customer promotion loop as a certified fallback if the sub-MIP is infeasible or times out;
+- Tracks active search space through explicit `n_active_variables` and `n_fixed_zero_variables` metrics.

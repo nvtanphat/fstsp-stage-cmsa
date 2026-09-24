@@ -5,7 +5,7 @@
 **A High-Fidelity Python Reimplementation & Reproduction of the 2-Index Stage-based Formulation and CMSA Algorithm for the Flying Sidekick Traveling Salesman Problem (FSTSP)**
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/Tests-54%2F54%20Passed-brightgreen.svg?logo=pytest&logoColor=white)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-55%2F55%20Passed-brightgreen.svg?logo=pytest&logoColor=white)](tests/)
 [![Solver](https://img.shields.io/badge/Solver-HiGHS%20%28SciPy%29-orange.svg)](https://highs.dev/)
 [![Dashboard](https://img.shields.io/badge/UI-Streamlit-red.svg?logo=streamlit&logoColor=white)](app.py)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -84,13 +84,13 @@ pip install -r requirements.txt
 
 ### 2. Run Test Suite
 
-Verify all 54 unit, integration, and regression tests:
+Verify all 55 unit, integration, and regression tests:
 
 ```bash
 pytest -q
 ```
 ```text
-54 passed in 12.69s
+55 passed in 48.52s
 ```
 
 ### 3. Run Experiments Locally
@@ -146,11 +146,12 @@ python scripts/verify_release.py
 ```
 
 The release verifier executes:
-1. Full 54-test suite (`pytest`).
+1. Full 55-test suite (`pytest`).
 2. Fixed exact-vs-brute-force comparisons: **$\Delta = 0.00000000000000$** absolute difference.
 3. 40 randomized stress instances: maximum observed difference **$\le 1.42 \times 10^{-14}$**.
 4. 100 random Construct fuzz tests under low endurance and `novisit` constraints.
-5. CMSA wall-clock deadline compliance.
+5. CMSA wall-clock deadline compliance with sub-millisecond precision regression tests.
+6. Alignment with paper Algorithm 1 (strict age adaptation and stage-based Construct integration).
 
 Detailed report: [`artifacts/verification/release_verification.json`](artifacts/verification/release_verification.json).
 
