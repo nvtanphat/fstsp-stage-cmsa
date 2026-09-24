@@ -538,21 +538,16 @@ def solve_stage_model(
     fixed_drone_customers: list[int] | set[int] | None = None,
     fixed_truck_route: list[int] | None = None,
     solver_backend: str = "highs",
+    threads: int | None = None,
+    mip_emphasis: int | None = None,
 ) -> FSTSPSolution:
     if time_limit <= 0:
         raise ValueError("time_limit must be positive")
     if not 0 <= mip_rel_gap < 1:
         raise ValueError("mip_rel_gap must be in [0, 1)")
 
-    if solver_backend == "cplex":
-        try:
-            import cplex  # noqa: F401
-        except ImportError:
-            raise RuntimeError(
-                "CPLEX backend requested per paper protocol, but IBM ILOG CPLEX ('cplex' Python package) "
-                "is not installed in this environment. Use solver_backend='highs' for the open-source "
-                "SciPy/HiGHS alternative solver."
-            )
+    from fstsp.solver import get_solver_backend, SolverOptions
+    backend = get_solver_backend(solver_backend)
 
     started = time.perf_counter()
     try:
@@ -570,7 +565,7 @@ def solve_stage_model(
         return FSTSPSolution(
             feasible=False, objective=None, runtime=time.perf_counter() - started,
             status="model_build_deadline_exceeded",
-            metadata={"solver": "scipy-highs", "solver_backend": solver_backend},
+            metadata={"solver": solver_backend, "solver_backend": solver_backend},
         )
     remaining_limit = float(time_limit)
     if deadline is not None:
@@ -579,24 +574,36 @@ def solve_stage_model(
             return FSTSPSolution(
                 feasible=False, objective=None, runtime=time.perf_counter() - started,
                 status="deadline_exhausted_before_mip",
-                metadata={"solver": "scipy-highs", "solver_backend": solver_backend},
+                metadata={"solver": solver_backend, "solver_backend": solver_backend},
             )
-    result = milp(
-        c=model.c,
-        integrality=model.integrality,
-        bounds=model.bounds,
-        constraints=model.constraint,
-        options={"time_limit": float(remaining_limit), "mip_rel_gap": float(mip_rel_gap), "presolve": True},
+
+    options = SolverOptions(
+        time_limit=remaining_limit,
+        mip_rel_gap=float(mip_rel_gap),
+        threads=threads,
+        mip_emphasis=mip_emphasis,
+        presolve=True,
+        deadline=deadline,
     )
+    result = backend.solve(model, options)
     runtime = time.perf_counter() - started
     model_stats = extract_model_metrics(model, active_components)
+    if result.model_metrics:
+        model_stats.update(result.model_metrics)
+
     if result.x is None:
         return FSTSPSolution(
             feasible=False,
             objective=None,
             runtime=runtime,
-            status=str(result.message),
-            metadata={"solver": "scipy-highs", "solver_backend": solver_backend, "status_code": int(result.status), **model_stats},
+            status=str(result.status),
+            metadata={
+                "solver": result.solver_name,
+                "solver_backend": solver_backend,
+                "solver_version": result.solver_version,
+                "status_code": result.raw_status,
+                **model_stats,
+            },
         )
     xval = np.asarray(result.x, dtype=float)
     if xval.shape != (model.var.size,) or not np.all(np.isfinite(xval)):
@@ -605,7 +612,13 @@ def solve_stage_model(
             objective=None,
             runtime=runtime,
             status="solver_returned_invalid_vector",
-            metadata={"solver": "scipy-highs", "status_code": int(result.status), **model_stats},
+            metadata={
+                "solver": result.solver_name,
+                "solver_backend": solver_backend,
+                "solver_version": result.solver_version,
+                "status_code": result.raw_status,
+                **model_stats,
+            },
         )
 
     # Do not trust the backend status blindly. Check the returned incumbent against
@@ -646,8 +659,11 @@ def solve_stage_model(
             runtime=runtime,
             status="solver_incumbent_failed_model_residual_check",
             metadata={
-                "solver": "scipy-highs",
-                "status_code": int(result.status),
+                "solver": result.solver_name,
+                "solver_backend": solver_backend,
+                "solver_version": result.solver_version,
+                "status_code": result.raw_status,
+                **model_stats,
                 **vector_diag,
             },
         )
@@ -691,23 +707,29 @@ def solve_stage_model(
                     launches[0], h, recoveries[0], launch_stages[0], recovery_stages[0]
                 )
             )
-    gap = getattr(result, "mip_gap", None)
-    if gap is not None:
-        try:
-            gap = float(gap)
-        except (TypeError, ValueError):
-            gap = None
-        if gap is not None and not math.isfinite(gap):
-            gap = None
-    solver_objective = float(result.fun)
+    gap = result.mip_gap
+    solver_objective = float(result.objective) if result.objective is not None else float("nan")
     if not math.isfinite(solver_objective):
         return FSTSPSolution(
             feasible=False,
             objective=None,
             runtime=runtime,
             status="solver_returned_nonfinite_objective",
-            metadata={"solver": "scipy-highs", "status_code": int(result.status)},
+            metadata={
+                "solver": result.solver_name,
+                "solver_backend": solver_backend,
+                "solver_version": result.solver_version,
+                "status_code": result.raw_status,
+            },
         )
+
+    if result.solver_name == "cplex":
+        proven_optimal = bool(
+            (result.raw_status in (101, 102))
+            or (gap is not None and gap <= 1e-9)
+        )
+    else:
+        proven_optimal = bool(result.raw_status == 0 and (gap is None or gap <= 1e-9))
 
     candidate = FSTSPSolution(
         feasible=True,
@@ -716,16 +738,19 @@ def solve_stage_model(
         drone_sorties=sorties,
         runtime=runtime,
         mip_gap=gap,
-        status=str(result.message),
+        status=str(result.status),
         metadata={
-            "solver": "scipy-highs",
+            "solver": result.solver_name,
             "solver_backend": solver_backend,
-            "status_code": int(result.status),
+            "solver_version": result.solver_version,
+            "status_code": result.raw_status,
+            "best_bound": result.best_bound,
+            "node_count": result.node_count,
             **model_stats,
             "big_m": model.big_m,
             "solver_objective": solver_objective,
             "requested_mip_rel_gap": float(mip_rel_gap),
-            "proven_optimal": bool(int(result.status) == 0 and gap is not None and gap <= 1e-9),
+            "proven_optimal": proven_optimal,
             **vector_diag,
         },
     )

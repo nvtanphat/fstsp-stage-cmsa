@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.4.3 — modular solver backends, CPLEX integration, config synchronization & Table 4 precision
+
+- **P0 — Modular Solver Hierarchy (`fstsp.solver`)**:
+  - Implemented `SolverBackend` abstraction with `CplexBackend` (using real `cplex.Cplex` API) and `HighsBackend` (using `scipy.optimize.milp`).
+  - Strict absence handling: choosing `solver_backend='cplex'` on an environment without IBM ILOG CPLEX raises `CplexNotAvailableError` and does NOT fall back silently to HiGHS.
+  - Implemented CPLEX parameters: `threads` (8), `mip_emphasis` (5, feasibility), `timelimit`, `mipgap`, and extracted real CPLEX progress metrics (presolved variables, presolved constraints, node counts).
+- **P0 — Centralized Configuration Loader (`fstsp.config`)**:
+  - Created [`src/fstsp/config.py`](file:///D:/HOCsauvaufngdung/fstsp_audit_v04_clean/src/fstsp/config.py) and [`configs/smoke_test.yaml`](file:///D:/HOCsauvaufngdung/fstsp_audit_v04_clean/configs/smoke_test.yaml).
+  - Explicitly separated paper protocol (Table 1/2: 3600s, Table 3 Exact: 7200s, Table 3 CMSA: 1800s, restricted MIP: 15s, age: 2) from smoke test protocol (`smoke_45s`).
+  - Propagated config through `experiments/run_exact.py`, `experiments/run_cmsa.py`, and `kaggle/run_experiment.py`.
+- **P0 — Fully Fixed Table 4 Measurement & Isolation**:
+  - Completely removed erroneous fallback from variable counts to `active_components`.
+  - Decomposed model metrics: `n_variables`, `n_fixed_zero_variables`, `n_fixed_one_variables`, `n_free_variables`, `n_constraints`, `n_nonzeros`, `presolved_variables`, `presolved_constraints`, `presolved_nonzeros`.
+  - Explicitly labeled measurement methodology: CPLEX post-presolve dimensions vs HiGHS pre-presolve active dimensions.
+- **P1 — Table 3 Budget & Dataset Standardization**:
+  - Strictly banned mixing 45s smoke runs with 1800s paper runs.
+  - Fully disclosed independent 40-instance synthetic reproduction versus unpublished author instances in [`KNOWN_LIMITATIONS.md`](file:///D:/HOCsauvaufngdung/fstsp_audit_v04_clean/KNOWN_LIMITATIONS.md).
+- **Added Comprehensive Unit Test Suite**:
+  - Added [`tests/unit/test_cplex_backend.py`](file:///D:/HOCsauvaufngdung/fstsp_audit_v04_clean/tests/unit/test_cplex_backend.py), [`tests/unit/test_solver_backend_selection.py`](file:///D:/HOCsauvaufngdung/fstsp_audit_v04_clean/tests/unit/test_solver_backend_selection.py), [`tests/unit/test_paper_config_propagation.py`](file:///D:/HOCsauvaufngdung/fstsp_audit_v04_clean/tests/unit/test_paper_config_propagation.py), [`tests/unit/test_table3_budget_consistency.py`](file:///D:/HOCsauvaufngdung/fstsp_audit_v04_clean/tests/unit/test_table3_budget_consistency.py), and [`tests/unit/test_table4_metrics.py`](file:///D:/HOCsauvaufngdung/fstsp_audit_v04_clean/tests/unit/test_table4_metrics.py).
+  - Verified total automated test count: **79 / 79 tests collected**.
+
 ## 0.4.2 — mathematical formulation proof, construct decoupling & audit hardening
 
 - **Mathematical Proof & Equation (35) Fix**: Corrected constant $K$ in Equation (35) ($\sum_k k X_E^k + \sum_h \phi_h = N + 2$) to strictly reference the total original customer count $N + 2$ (`instance.n + 2`), proving consistency for both full formulation and compact stage subproblems ($K_{\text{sub}} < N + 2$). Enabled Equations (34) and (35) unconditionally under `strengthen=True`.

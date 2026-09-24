@@ -1,0 +1,35 @@
+# Smoke Test Protocol Configuration (Fast verification only, NOT paper protocol)
+# Used for CI, rapid sanity checks, and local development.
+
+problem:
+  trucks: 1
+  drones: 1
+  start_depot: "S"
+  end_depot: "E"
+
+solver:
+  backend: highs
+  version_reference: "scipy-highs"
+  threads: 1
+  mip_emphasis: null
+  alternative_open_source_backend: highs
+
+exact_time_limits:
+  table1_agatz_maxradius_seconds: 5
+  table2_agatz_novisit_seconds: 5
+  table3_cplex_exact_seconds: 10
+
+cmsa:
+  age_limit: 2
+  restricted_mip_time_limit_seconds: 3
+  total_time_limit_seconds: 10
+  truck_sample_ratio: 0.65
+  exact_tsp_threshold: 60
+
+experiments:
+  instances_per_size: 2
+  customer_sizes: [6, 10]
+  table4_age_limits: [2]
+  require_raw_results: false
+  validate_solutions: true
+  protocol_type: "smoke_test"

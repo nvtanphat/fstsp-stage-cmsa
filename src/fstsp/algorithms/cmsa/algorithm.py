@@ -19,6 +19,9 @@ def solve_cmsa(
     seed: int = 42,
     mip_rel_gap: float = 0.02,
     construct_tsp_time: float = 5.0,
+    solver_backend: str = "highs",
+    threads: int | None = None,
+    mip_emphasis: int | None = None,
 ) -> FSTSPSolution:
     """CMSA-style solver following Algorithm 1 at the architectural level.
 
@@ -55,9 +58,7 @@ def solve_cmsa(
             break
 
         iteration += 1
-        # Construction is part of the CMSA wall-clock budget. The previous
-        # implementation could spend a fixed 5 s in its embedded MTZ TSP even
-        # when the remaining CMSA budget was only a few milliseconds.
+        # Construction is part of the CMSA wall-clock budget.
         remaining_for_construct = max(0.0, deadline - time.perf_counter())
         tsp_budget = min(float(construct_tsp_time), remaining_for_construct)
         constructed = construct_solution(
@@ -102,6 +103,9 @@ def solve_cmsa(
             active_components=active,
             strengthen=True,
             deadline=deadline,
+            solver_backend=solver_backend,
+            threads=threads,
+            mip_emphasis=mip_emphasis,
         )
         mip_comp = solution_components(mip_sol)
         if mip_sol.feasible:
@@ -122,6 +126,20 @@ def solve_cmsa(
                 "restricted_feasible": mip_sol.feasible,
                 "restricted_objective": mip_sol.objective,
                 "active_components": len(active),
+                "n_variables": mip_sol.metadata.get("n_variables"),
+                "n_constraints": mip_sol.metadata.get("n_constraints"),
+                "n_nonzeros": mip_sol.metadata.get("n_nonzeros"),
+                "n_fixed_zero_variables": mip_sol.metadata.get("n_fixed_zero_variables"),
+                "n_fixed_one_variables": mip_sol.metadata.get("n_fixed_one_variables"),
+                "n_free_variables": mip_sol.metadata.get("n_free_variables"),
+                "n_active_constraints": mip_sol.metadata.get("n_active_constraints"),
+                "n_active_nonzeros": mip_sol.metadata.get("n_active_nonzeros"),
+                "presolved_variables": mip_sol.metadata.get("presolved_variables"),
+                "presolved_constraints": mip_sol.metadata.get("presolved_constraints"),
+                "presolved_nonzeros": mip_sol.metadata.get("presolved_nonzeros"),
+                "solver_reported_variables": mip_sol.metadata.get("solver_reported_variables"),
+                "solver_reported_constraints": mip_sol.metadata.get("solver_reported_constraints"),
+                "solver_reported_nonzeros": mip_sol.metadata.get("solver_reported_nonzeros"),
                 "elapsed": time.perf_counter() - started,
             }
         )
@@ -146,9 +164,13 @@ def solve_cmsa(
             "mip_time": mip_time,
             "total_time_budget": total_time,
             "seed": seed,
+            "solver_backend": solver_backend,
+            "threads": threads,
+            "mip_emphasis": mip_emphasis,
             "construct_tsp_time": construct_tsp_time,
             "budget_overrun_seconds": max(0.0, (time.perf_counter() - started) - total_time),
             "history": history,
+            "last_mip_metadata": mip_sol.metadata if "mip_sol" in locals() else {},
         }
     )
     return best
