@@ -191,7 +191,11 @@ def solve_cmsa(
             "construct_tsp_time": construct_tsp_time,
             "budget_overrun_seconds": max(0.0, (time.perf_counter() - started) - total_time),
             "history": history,
-            "last_mip_metadata": mip_sol.metadata if "mip_sol" in locals() else {},
+            "last_mip_metadata": (
+                {k: v for k, v in mip_sol.metadata.items() if k not in ("history", "last_mip_metadata")}
+                if "mip_sol" in locals() and mip_sol is not None and mip_sol.metadata is not None
+                else {}
+            ),
         }
     )
     return best
