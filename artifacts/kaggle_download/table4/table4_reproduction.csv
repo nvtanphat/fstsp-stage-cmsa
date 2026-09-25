@@ -1,5 +1,0 @@
-n,Solver,Measurement Convention,Our age=2 Ave.#Cons,Our age=2 Ave.#Var,Our age=2 Ave.#Coef,Paper age=2 Cons/Var/Coef,Our age=5 Ave.#Cons,Our age=5 Ave.#Var,Our age=5 Ave.#Coef,Paper age=5 Cons/Var/Coef
-20,highs,Pre-presolve active subproblem mean across iterations (HiGHS),79799,1463,178397,"(808, 178, 3312)",79052,1457,178680,"(8814, 1378, 46627)"
-30,highs,Pre-presolve active subproblem mean across iterations (HiGHS),184593,2268,400238,"(3263, 796, 19304)",184593,2268,400238,"(18216, 2954, 122796)"
-40,highs,Pre-presolve active subproblem mean across iterations (HiGHS),-,-,-,"(12686, 2928, 110669)",-,-,-,"(30012, 5036, 246644)"
-50,highs,Pre-presolve active subproblem mean across iterations (HiGHS),0,0,0,"(14638, 3425, 153145)",0,0,0,"(48327, 7971, 467232)"

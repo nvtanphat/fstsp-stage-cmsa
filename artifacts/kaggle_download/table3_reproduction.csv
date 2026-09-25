@@ -1,5 +1,0 @@
-n,Protocol,Solver,Instances Tested,Exact Solved,Our Exact Avg Obj,Our CMSA Avg Obj,Our Avg Improvement,Paper CPLEX Obj,Paper CSMA Obj,Paper Improvement,Protocol Status,Completed Instances,Missing Instances,Total Required
-20,smoke_120s,highs,10,0,-,327.84,-,300.83,277.18,-7.86%,COMPLETE,40,0,40
-30,smoke_120s,highs,10,0,-,422.55,-,619.49,353.42,-42.95%,COMPLETE,40,0,40
-40,smoke_120s,highs,10,0,-,498.16,-,,422.87,-,COMPLETE,40,0,40
-50,smoke_120s,highs,10,0,-,622.19,-,,503.86,-,COMPLETE,40,0,40
