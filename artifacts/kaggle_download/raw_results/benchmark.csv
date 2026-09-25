@@ -1,0 +1,57 @@
+n,seed,protocol_type,solver_backend,instance_dataset,instance_hash,exact_feasible,exact_objective,exact_runtime,exact_status,exact_timeout,cmsa_feasible,cmsa_objective,cmsa_runtime,cmsa_total_time,cmsa_validation,improvement_gap_pct,age,instance_id,original_variables,free_variables,fixed_zero_variables,fixed_one_variables,active_constraints_before_presolve,active_nonzeros_before_presolve,presolved_variables,presolved_constraints,presolved_nonzeros,measurement_method
+20,1,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",4a386845ae144178,False,,62.057939318999956,TIME_LIMIT,True,True,333.3897048945947,120.0058472889998,120.0,,,,,,,,,,,,,,
+20,2,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",09bd53427bf4605b,False,,61.792637514000035,TIME_LIMIT,True,True,314.4789501591195,120.03499579000004,120.0,,,,,,,,,,,,,,
+20,3,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",8a2e950e271c587c,False,,61.95948388900001,TIME_LIMIT,True,True,306.65586853591026,120.08907946199997,120.0,,,,,,,,,,,,,,
+20,4,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",48577e1c51743a3f,False,,62.00067823800009,TIME_LIMIT,True,True,287.17675565444915,120.09621462299992,120.0,,,,,,,,,,,,,,
+20,5,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",31afed63cbfaac96,False,,62.025689631000205,TIME_LIMIT,True,True,344.1943055068761,120.00599108300003,120.0,,,,,,,,,,,,,,
+20,6,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",a2fbbd834f5ab15b,False,,62.12035738000009,TIME_LIMIT,True,True,352.0660868407846,120.0972366450003,120.0,,,,,,,,,,,,,,
+20,7,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",1c3d7dd5027ff878,False,,61.947538973000064,TIME_LIMIT,True,True,349.5245109204103,120.09999097400032,120.0,,,,,,,,,,,,,,
+20,8,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",c8586281f3a90751,False,,61.947008279999864,TIME_LIMIT,True,True,288.16576618220535,120.10652798699994,120.0,,,,,,,,,,,,,,
+20,9,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",d9ceb99f0685d530,False,,61.94915092099973,TIME_LIMIT,True,True,385.6616901248727,120.094834902,120.0,,,,,,,,,,,,,,
+20,10,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",797e41d58a7dc05f,False,,61.96350135900002,TIME_LIMIT,True,True,317.132527342573,120.05154312200011,120.0,,,,,,,,,,,,,,
+30,1,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",6af8125474f88fbc,False,,67.12530608199995,TIME_LIMIT,True,True,405.05906980014316,120.06914582299987,120.0,,,,,,,,,,,,,,
+30,2,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",a90c8df99055692e,False,,66.81400242000018,TIME_LIMIT,True,True,405.9789438357474,120.1303040050002,120.0,,,,,,,,,,,,,,
+30,3,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",6f4278f7cbeca76a,False,,66.68312375400001,TIME_LIMIT,True,True,406.03567425232364,120.17857155799993,120.0,,,,,,,,,,,,,,
+30,4,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",c08296dd93880239,False,,67.03324361000023,TIME_LIMIT,True,True,399.082320870847,120.11116654900025,120.0,,,,,,,,,,,,,,
+30,5,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",628ddd5d56fe96de,False,,67.66003609000018,TIME_LIMIT,True,True,428.0554135478286,120.10167010399982,120.0,,,,,,,,,,,,,,
+30,6,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",654b1b312987f769,False,,66.79384336300018,TIME_LIMIT,True,True,427.4967184335799,120.32343218899996,120.0,,,,,,,,,,,,,,
+30,7,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",af4bca7a1c884ad2,False,,66.89999196300005,TIME_LIMIT,True,True,432.2774546357606,120.31546639699945,120.0,,,,,,,,,,,,,,
+30,8,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",bf8e74642421bfcd,False,,67.08813457899942,TIME_LIMIT,True,True,364.348572409815,120.0700704130004,120.0,,,,,,,,,,,,,,
+30,9,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",b768de79c03f9738,False,,67.00885651000044,TIME_LIMIT,True,True,579.3706173339349,120.42977377599982,120.0,,,,,,,,,,,,,,
+30,10,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",eb15fc3639e25ec9,False,,67.1023224669998,TIME_LIMIT,True,True,377.75637019714463,120.10617367899977,120.0,,,,,,,,,,,,,,
+40,1,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",226ed7b14684ca5f,False,,0.0,NOT_RUN,False,True,466.138136247518,120.01706249200015,120.0,,,,,,,,,,,,,,
+40,2,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",4e4d4c3a4c833874,False,,0.0,NOT_RUN,False,True,494.34300384077983,120.16448303600009,120.0,,,,,,,,,,,,,,
+40,3,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",3c87073ce2953f8a,False,,0.0,NOT_RUN,False,True,514.8782017536121,120.00813405100052,120.0,,,,,,,,,,,,,,
+40,4,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",9fce459f06690c99,False,,0.0,NOT_RUN,False,True,538.384511481756,120.019667992,120.0,,,,,,,,,,,,,,
+40,5,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",6984b8c8d15ccd65,False,,0.0,NOT_RUN,False,True,491.1048408370398,120.02431362300013,120.0,,,,,,,,,,,,,,
+40,6,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",4d81f770dd6880e5,False,,0.0,NOT_RUN,False,True,529.4254269533689,120.3803645479993,120.0,,,,,,,,,,,,,,
+40,7,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",2c1551a3569437ec,False,,0.0,NOT_RUN,False,True,507.2191375659275,120.34586638899964,120.0,,,,,,,,,,,,,,
+40,8,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",07a98d094f4ffb9a,False,,0.0,NOT_RUN,False,True,479.6064647499878,123.36554461600008,120.0,,,,,,,,,,,,,,
+40,9,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",434683471a4352c7,False,,0.0,NOT_RUN,False,True,514.7292099477751,120.26440998199996,120.0,,,,,,,,,,,,,,
+40,10,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",33d84a0f0eba2738,False,,0.0,NOT_RUN,False,True,445.7947262867892,120.63347648699983,120.0,,,,,,,,,,,,,,
+50,1,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",a7cb32583f0f71ef,False,,0.0,NOT_RUN,False,True,615.7838839520311,120.41588447400045,120.0,,,,,,,,,,,,,,
+50,2,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",35c1389ebbfcc7f7,False,,0.0,NOT_RUN,False,True,781.2541359930648,120.85767970599954,120.0,,,,,,,,,,,,,,
+50,3,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",4a7531d987c81ec5,False,,0.0,NOT_RUN,False,True,541.4574712051963,120.0240011120004,120.0,,,,,,,,,,,,,,
+50,4,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",b2399d73a2c8e6c6,False,,0.0,NOT_RUN,False,True,611.3895447134153,120.02447767000012,120.0,,,,,,,,,,,,,,
+50,5,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",0e15acf127cac0f7,False,,0.0,NOT_RUN,False,True,542.5718405217497,122.897229358,120.0,,,,,,,,,,,,,,
+50,6,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",4a3b67697fb364b5,False,,0.0,NOT_RUN,False,True,698.854798644549,120.07627291599965,120.0,,,,,,,,,,,,,,
+50,7,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",095080b82cd79b8c,False,,0.0,NOT_RUN,False,True,572.9062357318203,120.16503165599988,120.0,,,,,,,,,,,,,,
+50,8,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",ad616610470b4384,False,,0.0,NOT_RUN,False,True,518.7954018067354,120.02667756600022,120.0,,,,,,,,,,,,,,
+50,9,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",0a0af2d5c3fa700b,False,,0.0,NOT_RUN,False,True,644.8440680260292,120.02592656599973,120.0,,,,,,,,,,,,,,
+50,10,smoke_120s,highs,"independent_synthetic_reproduction (40 instances, 10 per size)",650ecd20a17f3f1c,False,,0.0,NOT_RUN,False,True,694.0633258755038,120.026232446,120.0,,,,,,,,,,,,,,
+20,1,,highs,,4a386845ae144178,,,,,,,,,,,,2.0,uniform_n20_seed1,3023.0,1631.0,1392.0,0.0,87940.0,199905.0,,,,Active pre-presolve dimensions (HiGHS)
+20,2,,highs,,09bd53427bf4605b,,,,,,,,,,,,2.0,uniform_n20_seed2,,,0.0,0.0,,,,,,Active pre-presolve dimensions (HiGHS)
+20,1,,highs,,4a386845ae144178,,,,,,,,,,,,5.0,uniform_n20_seed1,,,0.0,0.0,,,,,,Active pre-presolve dimensions (HiGHS)
+20,2,,highs,,09bd53427bf4605b,,,,,,,,,,,,5.0,uniform_n20_seed2,3023.0,1668.0,1355.0,0.0,88129.0,208178.0,,,,Active pre-presolve dimensions (HiGHS)
+30,1,,highs,,6af8125474f88fbc,,,,,,,,,,,,2.0,uniform_n30_seed1,,,0.0,0.0,,,,,,Active pre-presolve dimensions (HiGHS)
+30,2,,highs,,a90c8df99055692e,,,,,,,,,,,,2.0,uniform_n30_seed2,,,,,,,,,,Active pre-presolve dimensions (HiGHS)
+30,1,,highs,,6af8125474f88fbc,,,,,,,,,,,,5.0,uniform_n30_seed1,,,0.0,0.0,,,,,,Active pre-presolve dimensions (HiGHS)
+30,2,,highs,,a90c8df99055692e,,,,,,,,,,,,5.0,uniform_n30_seed2,,,,,,,,,,Active pre-presolve dimensions (HiGHS)
+40,1,,highs,,226ed7b14684ca5f,,,,,,,,,,,,2.0,uniform_n40_seed1,,,,,,,,,,Active pre-presolve dimensions (HiGHS)
+40,2,,highs,,4e4d4c3a4c833874,,,,,,,,,,,,2.0,uniform_n40_seed2,,,,,,,,,,Active pre-presolve dimensions (HiGHS)
+40,1,,highs,,226ed7b14684ca5f,,,,,,,,,,,,5.0,uniform_n40_seed1,,,,,,,,,,Active pre-presolve dimensions (HiGHS)
+40,2,,highs,,4e4d4c3a4c833874,,,,,,,,,,,,5.0,uniform_n40_seed2,,,,,,,,,,Active pre-presolve dimensions (HiGHS)
+50,1,,highs,,a7cb32583f0f71ef,,,,,,,,,,,,2.0,uniform_n50_seed1,,,0.0,0.0,,,,,,Active pre-presolve dimensions (HiGHS)
+50,2,,highs,,35c1389ebbfcc7f7,,,,,,,,,,,,2.0,uniform_n50_seed2,,,0.0,0.0,,,,,,Active pre-presolve dimensions (HiGHS)
+50,1,,highs,,a7cb32583f0f71ef,,,,,,,,,,,,5.0,uniform_n50_seed1,,,0.0,0.0,,,,,,Active pre-presolve dimensions (HiGHS)
+50,2,,highs,,35c1389ebbfcc7f7,,,,,,,,,,,,5.0,uniform_n50_seed2,,,0.0,0.0,,,,,,Active pre-presolve dimensions (HiGHS)

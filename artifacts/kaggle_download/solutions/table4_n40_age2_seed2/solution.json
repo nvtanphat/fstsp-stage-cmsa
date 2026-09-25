@@ -1,0 +1,206 @@
+{
+  "feasible": true,
+  "objective": 527.9939821311877,
+  "truck_route": [
+    0,
+    11,
+    34,
+    15,
+    10,
+    30,
+    6,
+    2,
+    39,
+    23,
+    18,
+    26,
+    38,
+    40,
+    37,
+    21,
+    9,
+    27,
+    17,
+    3,
+    36,
+    28,
+    13,
+    5,
+    7,
+    8,
+    19,
+    41
+  ],
+  "drone_sorties": [
+    {
+      "launch_node": 11,
+      "customer": 1,
+      "recovery_node": 34,
+      "launch_stage": 1,
+      "recovery_stage": 2
+    },
+    {
+      "launch_node": 34,
+      "customer": 4,
+      "recovery_node": 15,
+      "launch_stage": 2,
+      "recovery_stage": 3
+    },
+    {
+      "launch_node": 15,
+      "customer": 24,
+      "recovery_node": 10,
+      "launch_stage": 3,
+      "recovery_stage": 4
+    },
+    {
+      "launch_node": 10,
+      "customer": 31,
+      "recovery_node": 30,
+      "launch_stage": 4,
+      "recovery_stage": 5
+    },
+    {
+      "launch_node": 30,
+      "customer": 25,
+      "recovery_node": 6,
+      "launch_stage": 5,
+      "recovery_stage": 6
+    },
+    {
+      "launch_node": 6,
+      "customer": 32,
+      "recovery_node": 2,
+      "launch_stage": 6,
+      "recovery_stage": 7
+    },
+    {
+      "launch_node": 39,
+      "customer": 20,
+      "recovery_node": 23,
+      "launch_stage": 8,
+      "recovery_stage": 9
+    },
+    {
+      "launch_node": 37,
+      "customer": 22,
+      "recovery_node": 21,
+      "launch_stage": 14,
+      "recovery_stage": 15
+    },
+    {
+      "launch_node": 9,
+      "customer": 12,
+      "recovery_node": 27,
+      "launch_stage": 16,
+      "recovery_stage": 17
+    },
+    {
+      "launch_node": 17,
+      "customer": 29,
+      "recovery_node": 3,
+      "launch_stage": 18,
+      "recovery_stage": 19
+    },
+    {
+      "launch_node": 3,
+      "customer": 14,
+      "recovery_node": 36,
+      "launch_stage": 19,
+      "recovery_stage": 20
+    },
+    {
+      "launch_node": 28,
+      "customer": 33,
+      "recovery_node": 13,
+      "launch_stage": 21,
+      "recovery_stage": 22
+    },
+    {
+      "launch_node": 13,
+      "customer": 16,
+      "recovery_node": 5,
+      "launch_stage": 22,
+      "recovery_stage": 23
+    },
+    {
+      "launch_node": 5,
+      "customer": 35,
+      "recovery_node": 7,
+      "launch_stage": 23,
+      "recovery_stage": 24
+    }
+  ],
+  "runtime": 45.404601645000184,
+  "mip_gap": null,
+  "status": "cmsa_completed",
+  "metadata": {
+    "truck_sample_ratio": 0.65,
+    "truck_customers": 26,
+    "drone_customers": 14,
+    "construction_method": "heuristic_fallback",
+    "construction_tsp_backend": "highs",
+    "construction_integration_backend": "highs",
+    "solver_backend": "highs",
+    "mtz_status": "OPTIMAL",
+    "mtz_proven_optimal": true,
+    "iterations": 1,
+    "age_limit": 2,
+    "mip_time": 8.0,
+    "total_time_budget": 45.0,
+    "seed": 2,
+    "restricted_mip_backend": "highs",
+    "threads": 8,
+    "mip_emphasis": 5,
+    "construct_tsp_time": 5.0,
+    "budget_overrun_seconds": 0.4046033450003961,
+    "history": [
+      {
+        "iteration": 1,
+        "constructed_objective": 527.9939821311877,
+        "construction_method": "heuristic_fallback",
+        "construction_tsp_backend": "highs",
+        "construction_integration_backend": "heuristic_greedy",
+        "restricted_mip_backend": "highs",
+        "restricted_feasible": false,
+        "restricted_objective": null,
+        "active_components": 69,
+        "n_variables": null,
+        "n_constraints": null,
+        "n_nonzeros": null,
+        "n_fixed_zero_variables": null,
+        "n_fixed_one_variables": null,
+        "n_free_variables": null,
+        "n_active_constraints": null,
+        "n_active_nonzeros": null,
+        "original_variables": null,
+        "original_constraints": null,
+        "original_nonzeros": null,
+        "free_variables": null,
+        "fixed_zero_variables": null,
+        "fixed_one_variables": null,
+        "active_constraints_before_presolve": null,
+        "active_nonzeros_before_presolve": null,
+        "presolved_variables": null,
+        "presolved_constraints": null,
+        "presolved_nonzeros": null,
+        "solver_reported_variables": null,
+        "solver_reported_constraints": null,
+        "solver_reported_nonzeros": null,
+        "elapsed": 45.40459583499978
+      }
+    ],
+    "last_mip_metadata": {
+      "solver": "highs",
+      "solver_backend": "highs"
+    },
+    "schema_version": "1.0.0",
+    "instance_hash": "4e4d4c3a4c833874",
+    "config_hash": "dd67a1d2c55f775b",
+    "solver_version": "scipy-milp",
+    "solver_seed": 2,
+    "method": "cmsa",
+    "total_time": 45.0,
+    "dataset_id": "uniform_n40_seed2"
+  }
+}

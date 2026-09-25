@@ -1,0 +1,9 @@
+{
+  "status": "COMPLETE",
+  "completed": 40,
+  "missing": 0,
+  "total_required": 40,
+  "is_complete": true,
+  "reasons": [],
+  "summary_text": "Completed: 40/40\nMissing: 0\nProtocol status: COMPLETE"
+}

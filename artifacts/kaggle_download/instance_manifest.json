@@ -1,0 +1,782 @@
+[
+  {
+    "tag": "table3_n20_seed1_exact",
+    "instance_name": "uniform_n20_seed1",
+    "n": 20,
+    "instance_hash": "4a386845ae144178",
+    "config_hash": "30a9e45514d28890",
+    "method": "exact",
+    "solver_backend": "highs",
+    "status": "TIME_LIMIT",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n20_seed1_cmsa",
+    "instance_name": "uniform_n20_seed1",
+    "n": 20,
+    "instance_hash": "4a386845ae144178",
+    "config_hash": "914298c96e28a631",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n20_seed2_exact",
+    "instance_name": "uniform_n20_seed2",
+    "n": 20,
+    "instance_hash": "09bd53427bf4605b",
+    "config_hash": "30a9e45514d28890",
+    "method": "exact",
+    "solver_backend": "highs",
+    "status": "TIME_LIMIT",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n20_seed2_cmsa",
+    "instance_name": "uniform_n20_seed2",
+    "n": 20,
+    "instance_hash": "09bd53427bf4605b",
+    "config_hash": "41adc0768788dc82",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n20_seed3_exact",
+    "instance_name": "uniform_n20_seed3",
+    "n": 20,
+    "instance_hash": "8a2e950e271c587c",
+    "config_hash": "30a9e45514d28890",
+    "method": "exact",
+    "solver_backend": "highs",
+    "status": "TIME_LIMIT",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n20_seed3_cmsa",
+    "instance_name": "uniform_n20_seed3",
+    "n": 20,
+    "instance_hash": "8a2e950e271c587c",
+    "config_hash": "d64354b91b93e975",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n20_seed4_exact",
+    "instance_name": "uniform_n20_seed4",
+    "n": 20,
+    "instance_hash": "48577e1c51743a3f",
+    "config_hash": "30a9e45514d28890",
+    "method": "exact",
+    "solver_backend": "highs",
+    "status": "TIME_LIMIT",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n20_seed4_cmsa",
+    "instance_name": "uniform_n20_seed4",
+    "n": 20,
+    "instance_hash": "48577e1c51743a3f",
+    "config_hash": "7f11977d24a30b1c",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n20_seed5_exact",
+    "instance_name": "uniform_n20_seed5",
+    "n": 20,
+    "instance_hash": "31afed63cbfaac96",
+    "config_hash": "30a9e45514d28890",
+    "method": "exact",
+    "solver_backend": "highs",
+    "status": "TIME_LIMIT",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n20_seed5_cmsa",
+    "instance_name": "uniform_n20_seed5",
+    "n": 20,
+    "instance_hash": "31afed63cbfaac96",
+    "config_hash": "11acb3b4a1b39a80",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n20_seed6_exact",
+    "instance_name": "uniform_n20_seed6",
+    "n": 20,
+    "instance_hash": "a2fbbd834f5ab15b",
+    "config_hash": "30a9e45514d28890",
+    "method": "exact",
+    "solver_backend": "highs",
+    "status": "TIME_LIMIT",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n20_seed6_cmsa",
+    "instance_name": "uniform_n20_seed6",
+    "n": 20,
+    "instance_hash": "a2fbbd834f5ab15b",
+    "config_hash": "e03e51bfe5d8015b",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n20_seed7_exact",
+    "instance_name": "uniform_n20_seed7",
+    "n": 20,
+    "instance_hash": "1c3d7dd5027ff878",
+    "config_hash": "30a9e45514d28890",
+    "method": "exact",
+    "solver_backend": "highs",
+    "status": "TIME_LIMIT",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n20_seed7_cmsa",
+    "instance_name": "uniform_n20_seed7",
+    "n": 20,
+    "instance_hash": "1c3d7dd5027ff878",
+    "config_hash": "7df0c2b877e49c33",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n20_seed8_exact",
+    "instance_name": "uniform_n20_seed8",
+    "n": 20,
+    "instance_hash": "c8586281f3a90751",
+    "config_hash": "30a9e45514d28890",
+    "method": "exact",
+    "solver_backend": "highs",
+    "status": "TIME_LIMIT",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n20_seed8_cmsa",
+    "instance_name": "uniform_n20_seed8",
+    "n": 20,
+    "instance_hash": "c8586281f3a90751",
+    "config_hash": "f2af7f0631108328",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n20_seed9_exact",
+    "instance_name": "uniform_n20_seed9",
+    "n": 20,
+    "instance_hash": "d9ceb99f0685d530",
+    "config_hash": "30a9e45514d28890",
+    "method": "exact",
+    "solver_backend": "highs",
+    "status": "TIME_LIMIT",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n20_seed9_cmsa",
+    "instance_name": "uniform_n20_seed9",
+    "n": 20,
+    "instance_hash": "d9ceb99f0685d530",
+    "config_hash": "5f2e39176828054e",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n20_seed10_exact",
+    "instance_name": "uniform_n20_seed10",
+    "n": 20,
+    "instance_hash": "797e41d58a7dc05f",
+    "config_hash": "30a9e45514d28890",
+    "method": "exact",
+    "solver_backend": "highs",
+    "status": "TIME_LIMIT",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n20_seed10_cmsa",
+    "instance_name": "uniform_n20_seed10",
+    "n": 20,
+    "instance_hash": "797e41d58a7dc05f",
+    "config_hash": "439320c7ab00f622",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n30_seed1_exact",
+    "instance_name": "uniform_n30_seed1",
+    "n": 30,
+    "instance_hash": "6af8125474f88fbc",
+    "config_hash": "30a9e45514d28890",
+    "method": "exact",
+    "solver_backend": "highs",
+    "status": "TIME_LIMIT",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n30_seed1_cmsa",
+    "instance_name": "uniform_n30_seed1",
+    "n": 30,
+    "instance_hash": "6af8125474f88fbc",
+    "config_hash": "914298c96e28a631",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n30_seed2_exact",
+    "instance_name": "uniform_n30_seed2",
+    "n": 30,
+    "instance_hash": "a90c8df99055692e",
+    "config_hash": "30a9e45514d28890",
+    "method": "exact",
+    "solver_backend": "highs",
+    "status": "TIME_LIMIT",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n30_seed2_cmsa",
+    "instance_name": "uniform_n30_seed2",
+    "n": 30,
+    "instance_hash": "a90c8df99055692e",
+    "config_hash": "41adc0768788dc82",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n30_seed3_exact",
+    "instance_name": "uniform_n30_seed3",
+    "n": 30,
+    "instance_hash": "6f4278f7cbeca76a",
+    "config_hash": "30a9e45514d28890",
+    "method": "exact",
+    "solver_backend": "highs",
+    "status": "TIME_LIMIT",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n30_seed3_cmsa",
+    "instance_name": "uniform_n30_seed3",
+    "n": 30,
+    "instance_hash": "6f4278f7cbeca76a",
+    "config_hash": "d64354b91b93e975",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n30_seed4_exact",
+    "instance_name": "uniform_n30_seed4",
+    "n": 30,
+    "instance_hash": "c08296dd93880239",
+    "config_hash": "30a9e45514d28890",
+    "method": "exact",
+    "solver_backend": "highs",
+    "status": "TIME_LIMIT",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n30_seed4_cmsa",
+    "instance_name": "uniform_n30_seed4",
+    "n": 30,
+    "instance_hash": "c08296dd93880239",
+    "config_hash": "7f11977d24a30b1c",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n30_seed5_exact",
+    "instance_name": "uniform_n30_seed5",
+    "n": 30,
+    "instance_hash": "628ddd5d56fe96de",
+    "config_hash": "30a9e45514d28890",
+    "method": "exact",
+    "solver_backend": "highs",
+    "status": "TIME_LIMIT",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n30_seed5_cmsa",
+    "instance_name": "uniform_n30_seed5",
+    "n": 30,
+    "instance_hash": "628ddd5d56fe96de",
+    "config_hash": "11acb3b4a1b39a80",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n30_seed6_exact",
+    "instance_name": "uniform_n30_seed6",
+    "n": 30,
+    "instance_hash": "654b1b312987f769",
+    "config_hash": "30a9e45514d28890",
+    "method": "exact",
+    "solver_backend": "highs",
+    "status": "TIME_LIMIT",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n30_seed6_cmsa",
+    "instance_name": "uniform_n30_seed6",
+    "n": 30,
+    "instance_hash": "654b1b312987f769",
+    "config_hash": "e03e51bfe5d8015b",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n30_seed7_exact",
+    "instance_name": "uniform_n30_seed7",
+    "n": 30,
+    "instance_hash": "af4bca7a1c884ad2",
+    "config_hash": "30a9e45514d28890",
+    "method": "exact",
+    "solver_backend": "highs",
+    "status": "TIME_LIMIT",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n30_seed7_cmsa",
+    "instance_name": "uniform_n30_seed7",
+    "n": 30,
+    "instance_hash": "af4bca7a1c884ad2",
+    "config_hash": "7df0c2b877e49c33",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n30_seed8_exact",
+    "instance_name": "uniform_n30_seed8",
+    "n": 30,
+    "instance_hash": "bf8e74642421bfcd",
+    "config_hash": "30a9e45514d28890",
+    "method": "exact",
+    "solver_backend": "highs",
+    "status": "TIME_LIMIT",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n30_seed8_cmsa",
+    "instance_name": "uniform_n30_seed8",
+    "n": 30,
+    "instance_hash": "bf8e74642421bfcd",
+    "config_hash": "f2af7f0631108328",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n30_seed9_exact",
+    "instance_name": "uniform_n30_seed9",
+    "n": 30,
+    "instance_hash": "b768de79c03f9738",
+    "config_hash": "30a9e45514d28890",
+    "method": "exact",
+    "solver_backend": "highs",
+    "status": "TIME_LIMIT",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n30_seed9_cmsa",
+    "instance_name": "uniform_n30_seed9",
+    "n": 30,
+    "instance_hash": "b768de79c03f9738",
+    "config_hash": "5f2e39176828054e",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n30_seed10_exact",
+    "instance_name": "uniform_n30_seed10",
+    "n": 30,
+    "instance_hash": "eb15fc3639e25ec9",
+    "config_hash": "30a9e45514d28890",
+    "method": "exact",
+    "solver_backend": "highs",
+    "status": "TIME_LIMIT",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n30_seed10_cmsa",
+    "instance_name": "uniform_n30_seed10",
+    "n": 30,
+    "instance_hash": "eb15fc3639e25ec9",
+    "config_hash": "439320c7ab00f622",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n40_seed1_cmsa",
+    "instance_name": "uniform_n40_seed1",
+    "n": 40,
+    "instance_hash": "226ed7b14684ca5f",
+    "config_hash": "914298c96e28a631",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n40_seed2_cmsa",
+    "instance_name": "uniform_n40_seed2",
+    "n": 40,
+    "instance_hash": "4e4d4c3a4c833874",
+    "config_hash": "41adc0768788dc82",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n40_seed3_cmsa",
+    "instance_name": "uniform_n40_seed3",
+    "n": 40,
+    "instance_hash": "3c87073ce2953f8a",
+    "config_hash": "d64354b91b93e975",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n40_seed4_cmsa",
+    "instance_name": "uniform_n40_seed4",
+    "n": 40,
+    "instance_hash": "9fce459f06690c99",
+    "config_hash": "7f11977d24a30b1c",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n40_seed5_cmsa",
+    "instance_name": "uniform_n40_seed5",
+    "n": 40,
+    "instance_hash": "6984b8c8d15ccd65",
+    "config_hash": "11acb3b4a1b39a80",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n40_seed6_cmsa",
+    "instance_name": "uniform_n40_seed6",
+    "n": 40,
+    "instance_hash": "4d81f770dd6880e5",
+    "config_hash": "e03e51bfe5d8015b",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n40_seed7_cmsa",
+    "instance_name": "uniform_n40_seed7",
+    "n": 40,
+    "instance_hash": "2c1551a3569437ec",
+    "config_hash": "7df0c2b877e49c33",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n40_seed8_cmsa",
+    "instance_name": "uniform_n40_seed8",
+    "n": 40,
+    "instance_hash": "07a98d094f4ffb9a",
+    "config_hash": "f2af7f0631108328",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n40_seed9_cmsa",
+    "instance_name": "uniform_n40_seed9",
+    "n": 40,
+    "instance_hash": "434683471a4352c7",
+    "config_hash": "5f2e39176828054e",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n40_seed10_cmsa",
+    "instance_name": "uniform_n40_seed10",
+    "n": 40,
+    "instance_hash": "33d84a0f0eba2738",
+    "config_hash": "439320c7ab00f622",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n50_seed1_cmsa",
+    "instance_name": "uniform_n50_seed1",
+    "n": 50,
+    "instance_hash": "a7cb32583f0f71ef",
+    "config_hash": "914298c96e28a631",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n50_seed2_cmsa",
+    "instance_name": "uniform_n50_seed2",
+    "n": 50,
+    "instance_hash": "35c1389ebbfcc7f7",
+    "config_hash": "41adc0768788dc82",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n50_seed3_cmsa",
+    "instance_name": "uniform_n50_seed3",
+    "n": 50,
+    "instance_hash": "4a7531d987c81ec5",
+    "config_hash": "d64354b91b93e975",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n50_seed4_cmsa",
+    "instance_name": "uniform_n50_seed4",
+    "n": 50,
+    "instance_hash": "b2399d73a2c8e6c6",
+    "config_hash": "7f11977d24a30b1c",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n50_seed5_cmsa",
+    "instance_name": "uniform_n50_seed5",
+    "n": 50,
+    "instance_hash": "0e15acf127cac0f7",
+    "config_hash": "11acb3b4a1b39a80",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n50_seed6_cmsa",
+    "instance_name": "uniform_n50_seed6",
+    "n": 50,
+    "instance_hash": "4a3b67697fb364b5",
+    "config_hash": "e03e51bfe5d8015b",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n50_seed7_cmsa",
+    "instance_name": "uniform_n50_seed7",
+    "n": 50,
+    "instance_hash": "095080b82cd79b8c",
+    "config_hash": "7df0c2b877e49c33",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n50_seed8_cmsa",
+    "instance_name": "uniform_n50_seed8",
+    "n": 50,
+    "instance_hash": "ad616610470b4384",
+    "config_hash": "f2af7f0631108328",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n50_seed9_cmsa",
+    "instance_name": "uniform_n50_seed9",
+    "n": 50,
+    "instance_hash": "0a0af2d5c3fa700b",
+    "config_hash": "5f2e39176828054e",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table3_n50_seed10_cmsa",
+    "instance_name": "uniform_n50_seed10",
+    "n": 50,
+    "instance_hash": "650ecd20a17f3f1c",
+    "config_hash": "439320c7ab00f622",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table4_n20_age2_seed1",
+    "instance_name": "uniform_n20_seed1",
+    "n": 20,
+    "instance_hash": "4a386845ae144178",
+    "config_hash": "c3f838aa5da59fd2",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table4_n20_age2_seed2",
+    "instance_name": "uniform_n20_seed2",
+    "n": 20,
+    "instance_hash": "09bd53427bf4605b",
+    "config_hash": "dd67a1d2c55f775b",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table4_n20_age5_seed1",
+    "instance_name": "uniform_n20_seed1",
+    "n": 20,
+    "instance_hash": "4a386845ae144178",
+    "config_hash": "baf4b027e9f1e2c0",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table4_n20_age5_seed2",
+    "instance_name": "uniform_n20_seed2",
+    "n": 20,
+    "instance_hash": "09bd53427bf4605b",
+    "config_hash": "8dec28a363fef744",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table4_n30_age2_seed1",
+    "instance_name": "uniform_n30_seed1",
+    "n": 30,
+    "instance_hash": "6af8125474f88fbc",
+    "config_hash": "c3f838aa5da59fd2",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table4_n30_age2_seed2",
+    "instance_name": "uniform_n30_seed2",
+    "n": 30,
+    "instance_hash": "a90c8df99055692e",
+    "config_hash": "dd67a1d2c55f775b",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table4_n30_age5_seed1",
+    "instance_name": "uniform_n30_seed1",
+    "n": 30,
+    "instance_hash": "6af8125474f88fbc",
+    "config_hash": "baf4b027e9f1e2c0",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table4_n30_age5_seed2",
+    "instance_name": "uniform_n30_seed2",
+    "n": 30,
+    "instance_hash": "a90c8df99055692e",
+    "config_hash": "8dec28a363fef744",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table4_n40_age2_seed1",
+    "instance_name": "uniform_n40_seed1",
+    "n": 40,
+    "instance_hash": "226ed7b14684ca5f",
+    "config_hash": "c3f838aa5da59fd2",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table4_n40_age2_seed2",
+    "instance_name": "uniform_n40_seed2",
+    "n": 40,
+    "instance_hash": "4e4d4c3a4c833874",
+    "config_hash": "dd67a1d2c55f775b",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table4_n40_age5_seed1",
+    "instance_name": "uniform_n40_seed1",
+    "n": 40,
+    "instance_hash": "226ed7b14684ca5f",
+    "config_hash": "baf4b027e9f1e2c0",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table4_n40_age5_seed2",
+    "instance_name": "uniform_n40_seed2",
+    "n": 40,
+    "instance_hash": "4e4d4c3a4c833874",
+    "config_hash": "8dec28a363fef744",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table4_n50_age2_seed1",
+    "instance_name": "uniform_n50_seed1",
+    "n": 50,
+    "instance_hash": "a7cb32583f0f71ef",
+    "config_hash": "c3f838aa5da59fd2",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table4_n50_age2_seed2",
+    "instance_name": "uniform_n50_seed2",
+    "n": 50,
+    "instance_hash": "35c1389ebbfcc7f7",
+    "config_hash": "dd67a1d2c55f775b",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table4_n50_age5_seed1",
+    "instance_name": "uniform_n50_seed1",
+    "n": 50,
+    "instance_hash": "a7cb32583f0f71ef",
+    "config_hash": "baf4b027e9f1e2c0",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  },
+  {
+    "tag": "table4_n50_age5_seed2",
+    "instance_name": "uniform_n50_seed2",
+    "n": 50,
+    "instance_hash": "35c1389ebbfcc7f7",
+    "config_hash": "8dec28a363fef744",
+    "method": "cmsa",
+    "solver_backend": "highs",
+    "resumed": false
+  }
+]

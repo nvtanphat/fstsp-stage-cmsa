@@ -8,8 +8,8 @@
         "-q"
       ],
       "returncode": 0,
-      "seconds": 267.2457285999553,
-      "stdout_tail": ".................................................................        [100%]\n65 passed in 265.19s (0:04:25)\nHighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();\nHighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();\n",
+      "seconds": 298.0736040999982,
+      "stdout_tail": "...................................................s.................... [ 61%]\n..............................................                           [100%]\n117 passed, 1 skipped in 292.77s (0:04:52)\nHighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();\nHighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();\n",
       "stderr_tail": "C:\\Users\\PC\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:208: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n"
     },
     "exact_vs_bruteforce": {
@@ -99,21 +99,21 @@
           "n": 6,
           "seed": 1,
           "objective": 189.65920090543588,
-          "runtime": 1.0239489000523463,
+          "runtime": 1.019294000001537,
           "iterations": 4
         },
         {
           "n": 8,
           "seed": 2,
-          "objective": 199.2882615940781,
-          "runtime": 1.002101199934259,
-          "iterations": 3
+          "objective": 226.95182968055622,
+          "runtime": 1.0107423000008566,
+          "iterations": 2
         },
         {
           "n": 10,
           "seed": 3,
           "objective": 375.8320633953759,
-          "runtime": 1.0119344999548048,
+          "runtime": 1.0258663999993587,
           "iterations": 1
         }
       ],
@@ -121,8 +121,8 @@
     },
     "cmsa_wallclock_budget": {
       "budget_seconds": 0.35,
-      "runtime_seconds": 0.38796179997734725,
-      "overrun_seconds": 0.03796309998724612,
+      "runtime_seconds": 0.38167369999791845,
+      "overrun_seconds": 0.031675099997664824,
       "passed": true
     },
     "kaggle_bundle_local_smoke": {
@@ -143,8 +143,8 @@
           "0.2"
         ],
         "returncode": 0,
-        "seconds": 0.15867269993759692,
-        "stdout_tail": "dist\\kaggle_kernel\n",
+        "seconds": 0.45987240000249585,
+        "stdout_tail": "D:\\HOCsauvaufngdung\\fstsp_audit_v04_clean\\dist\\kaggle_kernel\n",
         "stderr_tail": ""
       },
       "run": {
@@ -153,8 +153,8 @@
           "run_experiment.py"
         ],
         "returncode": 0,
-        "seconds": 2.7101388999726623,
-        "stdout_tail": "Running mode: synthetic with settings: {'mode': 'synthetic', 'sizes': [4], 'seeds': [1], 'total_time': 0.75, 'mip_time': 0.2, 'age_limit': 2, 'max_instances': 6, 'exact_time_limit': 45.0, 'instances_per_setting': 3, 'table3_sizes': [20, 30, 40, 50], 'table3_seeds': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'resume': True}\n\nAll outputs successfully written to artifacts\\kaggle\n",
+        "seconds": 4.104481200000009,
+        "stdout_tail": "\n[CONFIG] Effective Configuration Loaded: {\n  \"mode\": \"synthetic\",\n  \"protocol_type\": \"paper_protocol\",\n  \"solver_backend\": \"highs\",\n  \"threads\": 8,\n  \"mip_emphasis\": 5,\n  \"sizes\": [\n    4\n  ],\n  \"seeds\": [\n    1\n  ],\n  \"total_time\": 0.75,\n  \"mip_time\": 0.2,\n  \"age_limit\": 2,\n  \"max_instances\": 6,\n  \"exact_time_limit\": 45.0,\n  \"instances_per_setting\": 3,\n  \"table3_sizes\": [\n    20,\n    30,\n    40,\n    50\n  ],\n  \"table3_seeds\": [\n    1,\n    2,\n    3,\n    4,\n    5,\n    6,\n    7,\n    8,\n    9,\n    10\n  ],\n  \"table4_age_limits\": [\n    2,\n    5\n  ],\n  \"table1_time_limit\": 3600.0,\n  \"table2_time_limit\": 3600.0,\n  \"table3_exact_time_limit\": 45.0,\n  \"table3_cmsa_time_limit\": 0.75,\n  \"table3_restricted_mip_time_limit\": 0.2,\n  \"table4_restricted_mip_time_limit\": 0.2,\n  \"table4_total_time_limit\": 0.75,\n  \"resume\": true,\n  \"schema_version\": \"1.0.0\",\n  \"protocol_label\": \"smoke_0s\",\n  \"effective_config_hash\": \"a8a319c396063f0e\"\n}\nRunning mode: synthetic with settings: {'mode': 'synthetic', 'protocol_type': 'paper_protocol', 'solver_backend': 'highs', 'threads': 8, 'mip_emphasis': 5, 'sizes': [4], 'seeds': [1], 'total_time': 0.75, 'mip_time': 0.2, 'age_limit': 2, 'max_instances': 6, 'exact_time_limit': 45.0, 'instances_per_setting': 3, 'table3_sizes': [20, 30, 40, 50], 'table3_seeds': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'table4_age_limits': [2, 5], 'table1_time_limit': 3600.0, 'table2_time_limit': 3600.0, 'table3_exact_time_limit': 45.0, 'table3_cmsa_time_limit': 0.75, 'table3_restricted_mip_time_limit': 0.2, 'table4_restricted_mip_time_limit': 0.2, 'table4_total_time_limit': 0.75, 'resume': True, 'schema_version': '1.0.0', 'protocol_label': 'smoke_0s', 'effective_config_hash': 'a8a319c396063f0e'}\n\nAll outputs successfully written to artifacts\\kaggle\n",
         "stderr_tail": ""
       },
       "passed": true

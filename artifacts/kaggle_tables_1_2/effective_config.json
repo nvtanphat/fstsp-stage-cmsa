@@ -1,0 +1,54 @@
+{
+  "mode": "paper_tables_1_and_2",
+  "protocol_type": "paper_protocol",
+  "solver_backend": "highs",
+  "threads": 8,
+  "mip_emphasis": 5,
+  "sizes": [
+    6,
+    10
+  ],
+  "seeds": [
+    1,
+    2
+  ],
+  "total_time": 45.0,
+  "mip_time": 8.0,
+  "age_limit": 2,
+  "max_instances": 6,
+  "exact_time_limit": 120.0,
+  "instances_per_setting": 2,
+  "table3_sizes": [
+    20,
+    30,
+    40,
+    50
+  ],
+  "table3_seeds": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+  ],
+  "table4_age_limits": [
+    2,
+    5
+  ],
+  "table1_time_limit": 3600.0,
+  "table2_time_limit": 3600.0,
+  "table3_exact_time_limit": 7200.0,
+  "table3_cmsa_time_limit": 1800.0,
+  "table3_restricted_mip_time_limit": 15.0,
+  "table4_restricted_mip_time_limit": 15.0,
+  "table4_total_time_limit": 1800.0,
+  "resume": true,
+  "schema_version": "1.0.0",
+  "protocol_label": "smoke_45s",
+  "effective_config_hash": "35a254ba373b8c36"
+}
