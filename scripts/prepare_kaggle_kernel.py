@@ -39,6 +39,10 @@ def main() -> None:
     ap.add_argument("--instances-per-setting", type=int, default=3)
     ap.add_argument("--table3-sizes", default="20,30,40,50")
     ap.add_argument("--table3-seeds", default="1,2,3,4,5,6,7,8,9,10")
+    ap.add_argument("--table3-exact-time-limit", type=float, default=None, help="Exact time limit for Table 3 instances")
+    ap.add_argument("--table3-cmsa-time-limit", type=float, default=None, help="CMSA total time limit for Table 3 instances")
+    ap.add_argument("--table4-total-time-limit", type=float, default=None, help="CMSA total time limit for Table 4 instances")
+    ap.add_argument("--table4-restricted-mip-time-limit", type=float, default=None, help="MIP time limit for Table 4 instances")
     ap.add_argument("--resume", action="store_true", default=True, help="Resume from existing checkpoints if available")
     ap.add_argument("--no-resume", action="store_false", dest="resume", help="Force recomputation from scratch")
     ap.add_argument("--code-file", default=None, help="Name of entry point file")
@@ -57,6 +61,12 @@ def main() -> None:
     shutil.copytree(ROOT / "src" / "fstsp", out / "fstsp")
     if (ROOT / "configs").exists():
         shutil.copytree(ROOT / "configs", out / "configs")
+    
+    t3_exact = args.table3_exact_time_limit if args.table3_exact_time_limit is not None else args.exact_time_limit
+    t3_cmsa = args.table3_cmsa_time_limit if args.table3_cmsa_time_limit is not None else args.total_time
+    t4_total = args.table4_total_time_limit if args.table4_total_time_limit is not None else args.total_time
+    t4_mip = args.table4_restricted_mip_time_limit if args.table4_restricted_mip_time_limit is not None else args.mip_time
+
     settings = {
         "mode": args.mode,
         "solver_backend": args.solver_backend,
@@ -70,6 +80,11 @@ def main() -> None:
         "instances_per_setting": args.instances_per_setting,
         "table3_sizes": _parse_int_list(args.table3_sizes),
         "table3_seeds": _parse_int_list(args.table3_seeds),
+        "table3_exact_time_limit": t3_exact,
+        "table3_cmsa_time_limit": t3_cmsa,
+        "table3_restricted_mip_time_limit": args.mip_time,
+        "table4_total_time_limit": t4_total,
+        "table4_restricted_mip_time_limit": t4_mip,
         "resume": args.resume,
         "schema_version": "1.0.0",
     }
